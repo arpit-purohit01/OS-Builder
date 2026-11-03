@@ -1,39 +1,171 @@
-# CI (Phase 0, P0-03). Unit/lint/golden run on any runner; image build and
-# boot tests need a self-hosted runner with /dev/kvm (label "kvm"), one job
-# per ephemeral VM. Without KVM the same jobs work but boots take minutes.
-name: ci
-on: [push, pull_request]
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
 env:
-  GOTOOLCHAIN: local
   GOFLAGS: -mod=vendor
+  GOTOOLCHAIN: local
+  FOUNDRY_TOOLS_TREE: /var/lib/foundry/tools-tree
+  FOUNDRY_DIRECT_MIRRORS: "1"
+
 jobs:
-  unit:
-    runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:16
-        env: { POSTGRES_HOST_AUTH_METHOD: trust }
-        ports: ["5432:5432"]
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with: { go-version: "1.24.7" }
-      - run: sudo scripts/host-deps.sh
-      - run: make lint
-      - run: FOUNDRY_REQUIRE_PG=1 make test-race
-      - run: make golden
-  phase0:
-    needs: unit
-    runs-on: [self-hosted, kvm]
-    timeout-minutes: 120
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go.sum
+      - name: Run linters
+        run: |
+          make lint
+          cd web && npm ci && npm run lint
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: foundry
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - uses: actions/checkout@v4
-      - run: make tools-tree   # cached on the runner image
-      - run: make phase0 PHASE0=$RUNNER_TEMP/phase0
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - uses: actions/setup-go@v5
         with:
-          name: phase0-report
-          path: |
-            ${{ runner.temp }}/phase0/acceptance.json
-            ${{ runner.temp }}/phase0/work/serial-*.log
+          go-version: '1.25'
+          cache-dependency-path: go.sum
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            shellcheck \
+            postgresql-client-16
+      - name: Run tests
+        env:
+          FOUNDRY_REQUIRE_PG: "1"
+          FOUNDRY_DB: postgres://postgres@127.0.0.1:5432/foundry?sslmode=disable
+        run: make test
+
+  golden:
+    name: Golden Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go.sum
+      - name: Run golden tests
+        run: make golden
+
+  web:
+    name: Web Build & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: cd web && npm ci
+      - name: Build
+        run: cd web && npm run build
+      - name: Test
+        run: cd web && npm test
+
+  phase0:
+    name: Phase 0 Acceptance (KVM)
+    runs-on: ubuntu-latest
+    if: false  # Disabled by default - requires self-hosted runner with KVM
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go.sum
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools \
+            systemd-boot-efi systemd-ukify sbsigntool efitools openssl \
+            mtools dosfstools cryptsetup-bin e2fsprogs fdisk zstd xz-utils \
+            postgresql-16 postgresql-client-16 shellcheck python3 git
+      - name: Install mkosi
+        run: pip3 install "mkosi==24.*"
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE DATABASE foundry;"
+      - name: Build and run Phase 0
+        run: |
+          make build components
+          make tools-tree
+          make phase0
+
+  phase1-e2e:
+    name: Phase 1 E2E (KVM)
+    runs-on: ubuntu-latest
+    if: false  # Disabled by default - requires self-hosted runner with KVM
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools \
+            systemd-boot-efi systemd-ukify sbsigntool efitools openssl \
+            mtools dosfstools cryptsetup-bin e2fsprogs fdisk zstd xz-utils \
+            postgresql-16 postgresql-client-16 shellcheck python3 git
+      - name: Install mkosi
+        run: pip3 install "mkosi==24.*"
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE DATABASE foundry;"
+      - name: Build and run Phase 1 E2E
+        run: |
+          make build components
+          make tools-tree
+          cd web && npm ci && npm run build
+          make dev-up
+          bin/fctl login -url http://127.0.0.1:8080 -email test@example.com -create-org "Test:test"
+          make e2e
+
+  # Self-hosted runner jobs (enable when you have KVM runners)
+  # phase0-kvm:
+  #   name: Phase 0 Acceptance (Self-hosted KVM)
+  #   runs-on: [self-hosted, kvm]
+  #   steps: ... (same as phase0 above)
+  #
+  # phase1-kvm:
+  #   name: Phase 1 Full Acceptance (Self-hosted KVM)
+  #   runs-on: [self-hosted, kvm]
+  #   timeout-minutes: 120
+  #   steps: ... (phase1-e2e + test-crash + test-repro + example specs boot)

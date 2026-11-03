@@ -1,0 +1,55 @@
+{
+  "name": "Foundry OS Builder",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USER_UID": "1000",
+      "USER_GID": "1000"
+    }
+  },
+  "runArgs": [
+    "--privileged",
+    "--device=/dev/kvm:/dev/kvm",
+    "--device=/dev/net/tun:/dev/net/tun",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=CAP_DAC_OVERRIDE",
+    "--cap-add=CAP_SYS_ADMIN",
+    "--cap-add=CAP_SYS_RESOURCE",
+    "--security-opt=apparmor:unconfined",
+    "--cgroupns=host"
+  ],
+  "mounts": [
+    "source=foundry-pkg-cache,target=/var/cache/apt,type=volume",
+    "source=foundry-go-cache,target=/go/pkg/mod,type=volume",
+    "source=foundry-pg-data,target=/var/lib/postgresql,type=volume"
+  ],
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-vscode.makefile-tools",
+        "redhat.vscode-yaml",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "go.lintOnSave": "package",
+        "go.formatTool": "gofmt",
+        "go.vetOnSave": "package",
+        "files.eol": "\n",
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "forwardPorts": [8080, 7443, 7444, 9090, 3000, 3100, 5432],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh"
+}

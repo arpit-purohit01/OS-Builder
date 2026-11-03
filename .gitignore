@@ -1,3 +1,4 @@
+# Build outputs
 /third_party/
 /out/
 /var/
@@ -9,3 +10,45 @@
 *.fd
 /.cache/
 /images/builder/mkosi.extra/usr/bin/
+
+# DevContainer volumes (Docker)
+.devcontainer/volumes/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Test artifacts
+/test/boot/results/
+/test/e2e/out/
+
+# Database
+/var/lib/postgresql/
+*.db
+*.sqlite
+
+# Keys and certificates
+/out/keys/
+*.pem
+*.key
+*.crt
+
+# Environment
+.env
+.env.local
+.env.*.local

@@ -1,92 +1,303 @@
-# Foundry
+# Foundry OS Builder
 
-Foundry is a no-code platform (B2B first) that turns an **OS specification**
-(YAML/JSON, edited through a GUI) into a **signed, bootable, updatable Linux
-operating system image**, then installs, updates and manages it on fleets.
-Images are composed from a pinned upstream base with mkosi and systemd —
-we do not write kernels.
+> **Foundry** is a B2B no-code platform that turns an **OS specification** (YAML/JSON edited through a GUI) into a **signed, bootable, updatable Linux operating system image**, then installs, updates, and manages it on fleets of devices.
 
-This archive is the **Phase 1 (MVP image pipeline)** delivery (it includes everything from Phase 0 and groundwork for Phases 2–3). See
-[`docs/STATUS.md`](docs/STATUS.md) for what is complete, the acceptance test
-results, and known deviations from the plan.
+Built on Debian 13 "trixie" using `mkosi`, `systemd-repart`, `ukify`, and `systemd-sysupdate`.
 
-## What Phase 0 proves
+## 🚀 Quick Start with VS Code DevContainers (Recommended)
 
-An image generated from a spec boots in an automated harness with the full
-production security chain:
+This project includes a complete **DevContainer** configuration that provides a ready-to-use Linux development environment with:
+- Go 1.25+, QEMU/KVM, PostgreSQL 16
+- mkosi, systemd-ukify, sbsigntool, swtpm
+- All system dependencies pre-installed
+- KVM device access for fast boot testing
 
-```
-UEFI firmware ── Secure Boot (tenant PK/KEK/db, auto-enrolled in setup mode)
-  └─ systemd-boot (platform copy, signed by tenant db)
-       └─ UKI (kernel+initrd+cmdline, signed; cmdline pins usrhash=)
-            ├─ /usr  = erofs on dm-verity (root hash in the signed cmdline)
-            ├─ root  = ext4 on LUKS2, created on first boot, key sealed to the
-            │          TPM2 with a PCR 11 policy signed for the initrd phase only
-            └─ A/B slots + boot counting (+3) + health check → automatic fallback
-```
+### Prerequisites
+- VS Code with **Dev Containers** extension
+- Docker Desktop (with "Use Rosetta" on Apple Silicon)
+- **Windows**: Enable WSL2 and Virtualization in BIOS
+- **Linux**: `/dev/kvm` access (user in `kvm` group)
 
-Acceptance suite (`make phase0`):
+### One-Click Setup
+1. Open this folder in VS Code
+2. Press `F1` → **Dev Containers: Reopen in Container**
+3. Wait for build (~5-10 min first time)
+4. Run tests: `make e2e`
 
-| # | Test | How |
-|---|---|---|
-| 1 | Image builds and boots (UEFI and Secure Boot, TPM2, reboot) | `uefi-tpm-reboot`, `sb-tpm-reboot` |
-| 2 | Secure Boot refuses an unsigned UKI | `sb-unsigned-uki` |
-| 3 | A flipped byte in `/usr` is caught by dm-verity | `verity-corruption` |
-| 4 | Root unlocks on unchanged boot, not with a foreign PCR key, never from the running OS | `tpm-foreign-pcr-key` + unseal probe in every boot |
-| 5 | Update into slot B with systemd-sysupdate; failing trial boots fall back to the old version | `ab-fallback` |
+---
 
-## Quick start (Ubuntu 24.04 host)
+## 🛠 Manual Setup (Linux/WSL2)
 
-```sh
-scripts/host-deps.sh            # qemu, ovmf, swtpm, systemd-boot-efi, ukify, sbsigntool, efitools, ...
-# mkosi 27.1 (see deploy/versions.lock) on PATH, then build the tools tree once:
-make tools-tree                 # /var/lib/foundry/tools-tree (Ubuntu 26.04 tools)
-make test                       # unit + golden tests (Postgres optional; tests needing it skip)
-make phase0                     # build v1+v2, sign, run the five acceptance tests
-```
+### Install Dependencies
+```bash
+# Ubuntu 24.04 / Debian 13
+sudo apt update && sudo apt install -y \
+  golang-go qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools \
+  systemd-boot-efi systemd-ukify sbsigntool efitools openssl \
+  mtools dosfstools cryptsetup-bin e2fsprogs fdisk zstd xz-utils \
+  postgresql-16 postgresql-client-16 nodejs npm shellcheck jq \
+  libvirt-daemon-system libvirt-clients bridge-utils
 
-Individual steps:
+# Install mkosi (pinned version)
+pip3 install "mkosi==24.*"
 
-```sh
-bin/fctl validate test/golden/specs/vm-server.yaml       # schema → semantic → catalog SAT → policy
-bin/fctl compile  test/golden/specs/vm-server.yaml -o /tmp/tree   # spec → mkosi project (pure)
-make image SPEC=test/golden/specs/vm-server.yaml          # mkosi build → disk.raw, UKI, roothash
-make sign-image IMAGE=/var/lib/foundry/builds/<id>/out/ci-server_1.0.0.raw
-make boot-test IMAGE=.../signed/ci-server_1.0.0.signed.raw MATRIX=sb-tpm-reboot
+# Install Go tools
+go install golang.org/x/tools/cmd/goimports@latest
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 ```
 
-Mirrors: builds fetch packages from `http://archive.ubuntu.com/ubuntu`
-(`FOUNDRY_DIRECT_MIRRORS=1` drops proxy variables for mkosi). Without
-`/dev/kvm` QEMU runs in TCG mode: a boot takes 2–3 minutes instead of seconds,
-and the full suite about an hour.
+### Start Services
+```bash
+# PostgreSQL
+sudo systemctl start postgresql
+sudo -u postgres psql -c "CREATE DATABASE foundry;"
 
-## Repository layout
-
-```
-cmd/fctl          CLI: validate, compile, build, catalog
-cmd/signer        the only program with key access: keys, sign-image (offline), serve (HTTP, DB-authorized)
-cmd/tester        QEMU/OVMF/swtpm boot tests; `tester acceptance` runs the Phase 0 suite
-cmd/foundry-agent on-device agent (skeleton: sd_notify + watchdog)
-internal/osspec   spec types, schema, defaults, semantic validation, RFC 8785 digests, migrations
-internal/catalog  option catalog, CNF compiler, DPLL SAT solver with MUS explanations
-internal/compiler spec → mkosi tree (pure, golden-tested); boot/initrd/health/reporter scripts in files/
-internal/builder  runs mkosi and collects outputs
-internal/signer   keys, UKI re-assembly with trusted stub + PCR policy, sbsign, verity sig, enrollment
-internal/finalize trusted post-approval stage: signed boot chain into the ESP, verity-sig GPT entry, update payload
-internal/gpt      GPT reader/writer (CRC-checked, primary + backup)
-internal/uki      UKI section parsing, PCR 11 prediction
-internal/tester   VM machine model + acceptance scenarios
-catalog/          option/app/theme catalog (YAML)
-test/golden/      specs and expected compiler output
-docs/             plan, context (design), schemas, runbooks, status
+# libvirtd (for KVM)
+sudo systemctl start libvirtd
+sudo usermod -aG kvm,libvirt $USER
+newgrp kvm
 ```
 
-Phase 1 groundwork is also present (REST API, Postgres store, job queue,
-scheduler, worker pipeline, scanner v0, format converters); its state is
-listed separately in `docs/STATUS.md`.
+### Build & Test
+```bash
+# Build all binaries
+make build components
 
-## Conventions
+# Create tools tree (mkosi cache)
+make tools-tree
 
-Go 1.24 with vendored modules (`GOFLAGS=-mod=vendor`, `GOTOOLCHAIN=local`),
-`make lint` (go vet, gofmt, shellcheck), golden outputs reviewed on change
-(`make golden-update`). Non-negotiable invariants are in `CLAUDE.md`.
+# Start dev stack (API, scheduler, worker, signer, previewd)
+make dev-up
+
+# In another terminal: login and create org
+bin/fctl login -url http://127.0.0.1:8080 -email you@example.com -create-org "MyOrg:myorg"
+
+# Run full e2e test (~5 min with KVM, ~30 min TCG)
+make e2e
+```
+
+---
+
+## 📋 Available Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Build all Go binaries |
+| `make components` | Build static agent/installer binaries |
+| `make test` | Unit + integration tests (requires Postgres) |
+| `make test-race` | Tests with race detector |
+| `make lint` | go vet, gofmt, shellcheck |
+| `make golden` | Compile example specs, diff against goldens |
+| `make golden-update` | Regenerate golden outputs |
+| `make tools-tree` | Create mkosi tool cache |
+| `make dev-up` | Start local dev stack |
+| `make dev-down` | Stop dev stack |
+| `make e2e` | Full end-to-end pipeline test |
+| `make image SPEC=...` | Build single image (process sandbox) |
+| `make sign-image IMAGE=...` | Sign image with dev keys |
+| `make boot-test IMAGE=... MATRIX=...` | Boot test in QEMU |
+| `make phase0` | Phase 0 acceptance suite |
+| `make phase1` | Phase 1 acceptance (test + e2e) |
+| `make test-crash PROJECT=...` | Acceptance 5: worker crash re-lease |
+| `make test-repro PROJECT=...` | Acceptance 4: reproducibility |
+| `make web` | Build React frontend |
+| `make web-test` | Frontend tests |
+
+---
+
+## 🏗 Project Structure
+
+```
+cmd/                    # Entry points (binaries)
+  api/                  # REST API server
+  scheduler/            # Build scheduler (DRR + rendezvous)
+  worker-agent/         # KVM host agent
+  builder/              # Build VM process (mkosi)
+  scanner/              # SBOM, CVE, YARA, risk scoring
+  tester/               # QEMU boot test harness
+  signer/               # Isolated signing service
+  foundry-agent/        # On-device agent
+  fctl/                 # CLI tool
+
+internal/               # Private packages
+  osspec/               # Spec types, validation, canonicalization
+  catalog/              # Option catalog, CNF/SAT solver
+  compiler/             # Spec → mkosi tree (pure function)
+  dag/                  # Build stage graph, cache keys
+  cache/                # Content-addressed store, W-TinyLFU
+  store/                # Postgres repos, build FSM
+  queue/                # River job queue
+  sched/                # Scheduler algorithms
+  blob/                 # S3-compatible artifact store
+  tuf/                  # TUF metadata
+  attest/               # TPM quote verification
+
+web/                    # React + TypeScript builder UI
+images/                 # mkosi base images, profiles, modules
+catalog/                # YAML option catalog
+deploy/                 # Terraform, Helm, Ansible
+docs/                   # Plans, context, schemas, examples
+scripts/                # Dev/test automation
+test/                   # Golden files, boot scenarios, e2e
+```
+
+---
+
+## 🧪 Phase Status
+
+| Phase | Name | Status | Exit Gate |
+|-------|------|--------|-----------|
+| **0** | Foundations | ✅ **Complete** | 6/6 boot tests pass (UEFI, SB, TPM, A/B) |
+| **1** | MVP Image Pipeline | 🔄 **Code Complete** | 3 pilot specs, 2 devices each, 7-day reproducibility |
+| **2** | Builder & Customization | 📋 Planned | Non-technical user builds/installs in <30 min |
+| **3** | Security & Trust | 📋 Planned | Red-team blocked, tenant HSM keys |
+| **4** | Updates & Fleet | 📋 Planned | 100-device pilot, auto-rollback proven |
+
+### Phase 1 Remaining Verification (Run in DevContainer)
+- [ ] **Acceptance 5**: Worker crash re-lease + orphan reaper (`make test-crash`)
+- [ ] **Acceptance 2**: Example specs boot matrix (kiosk, school-lab, office-laptop)
+- [ ] **Acceptance 3**: Build time targets for desktop profiles
+- [ ] **P1-13**: All output formats (img.xz, qcow2, vmdk, ova, iso)
+- [ ] **P1-11**: S3 artifact store vs real MinIO
+- [ ] **VM Sandbox**: Full build inside QEMU builder VM (`FOUNDRY_SANDBOX=vm`)
+
+---
+
+## 🔑 Key Concepts
+
+### OS Specification (OSSpec)
+Single source of truth for an OS. Edited via GUI, compiled to mkosi tree.
+
+```yaml
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata:
+  name: my-kiosk
+  version: 1.0.0
+foundation:
+  base: debian-13
+  profile: kiosk-cage
+security:
+  diskEncryption: tpm2
+  secureBoot: tenant-keys
+apps:
+  preinstalled: [flatpak:org.mozilla.firefox]
+```
+
+### Build Flow
+1. **Spec** → validation (schema + semantic + SAT + policy)
+2. **Compiler** → pure function → mkosi tree (deterministic)
+3. **Worker** → ephemeral KVM VM → mkosi build → artifacts
+4. **Scanner** → SBOM, CVE, YARA, risk score
+5. **Tester** → QEMU boot test (UEFI/SB/TPM matrix)
+6. **Signer** → signs UKI, bootloader, verity, manifest
+7. **Publish** → content-addressed artifacts → signed downloads
+
+### Reproducibility
+Two builds of the same spec digest **must** produce identical `/usr` dm-verity root hash.
+- `SOURCE_DATE_EPOCH` from base snapshot
+- Pinned mirrors (snapshot.debian.org)
+- Pinned tool versions (deploy/versions.lock)
+
+---
+
+## 🔧 Development Workflow
+
+### Adding a Spec Field
+Use the `osspec-schema-change` skill (`.claude/skills/osspec-schema-change/`):
+1. Update JSON Schema (`schemas/osspec.v1alpha1.schema.json`)
+2. Update Go types (`internal/osspec/`)
+3. Add defaults, validation, compiler mapping
+4. Add golden test (`test/golden/`)
+5. Update catalog/UI/docs
+
+### Running Tests
+```bash
+# Unit tests (fast, no KVM needed)
+make test
+
+# Integration tests (needs Postgres)
+FOUNDRY_REQUIRE_PG=1 make test
+
+# Full e2e (needs KVM for speed)
+make e2e
+
+# Specific acceptance tests
+make test-crash PROJECT=prj_xxx   # Worker crash
+make test-repro PROJECT=prj_xxx   # Reproducibility
+```
+
+### Debugging
+```bash
+# View dev stack logs
+tail -f out/dev/logs/*.log
+
+# Inspect build in progress
+bin/fctl logs <build-id>
+bin/fctl status <build-id>
+
+# Database inspection
+psql postgres://postgres@127.0.0.1:5432/foundry
+```
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| `docs/context/architecture.md` | System architecture, component map, flows |
+| `docs/context/osspec-format.md` | Complete spec format reference |
+| `docs/context/build-pipeline.md` | Build stages, DAG, sandbox, cache |
+| `docs/context/boot-firmware-and-disk.md` | UEFI, Secure Boot, TPM, partitions |
+| `docs/context/security-threat-model.md` | STRIDE threat model, mitigations |
+| `docs/context/update-system.md` | A/B updates, TUF, deltas, rollouts |
+| `docs/context/fleet-and-device-agent.md` | Device enrollment, attestation, policies |
+| `docs/plan/phase-*.md` | Detailed phase plans with tasks |
+| `docs/db/schema.sql` | Complete Postgres schema |
+| `docs/examples/*.yaml` | Pilot specs (kiosk, school-lab, office) |
+
+---
+
+## 🛡 Security
+
+- **Keys never leave `cmd/signer`** — isolated signing service
+- **Builds run in ephemeral VMs** — no host contamination
+- **Egress allowlist only** — snapshot.debian.org, package cache, object store
+- **Content-addressed artifacts** — immutable, SHA-256 keys
+- **TUF for updates** — CDN/mirrors untrusted
+- **TPM-bound device identity** — mTLS with hardware keys
+
+---
+
+## 🤝 Contributing
+
+1. Read `CLAUDE.md` for invariants and conventions
+2. Follow Go 1.25+ style: `context.Context` first, `%w` errors, no panics
+3. Run `make lint` before commit
+4. PRs need 1 reviewer; security paths need security reviewer
+5. Commits: Conventional Commits format
+
+---
+
+## 📄 License
+
+Proprietary — Internal use only.
+
+---
+
+## 🆘 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `/dev/kvm` permission denied | `sudo usermod -aG kvm $USER && newgrp kvm` |
+| PostgreSQL connection refused | `sudo systemctl start postgresql` |
+| mkosi: command not found | `pip3 install "mkosi==24.*"` |
+| Go version mismatch | Install Go 1.25+ from golang.org |
+| QEMU TCG very slow | Ensure KVM: `ls -la /dev/kvm` |
+| libvirtd not starting | `sudo systemctl start libvirtd` |
+| Web build fails | `cd web && rm -rf node_modules package-lock.json && npm install` |
+
+---
+
+**Built with ❤️ for organizations that need their own OS.**
