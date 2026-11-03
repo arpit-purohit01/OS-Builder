@@ -1,0 +1,17 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=ci-kiosk_@v.efi
+
+[Target]
+Type=regular-file
+Path=/EFI/Linux
+PathRelativeTo=boot
+MatchPattern=ci-kiosk_@v+@l-@d.efi ci-kiosk_@v+@l.efi ci-kiosk_@v.efi
+Mode=0444
+TriesLeft=3
+TriesDone=0
+InstancesMax=2

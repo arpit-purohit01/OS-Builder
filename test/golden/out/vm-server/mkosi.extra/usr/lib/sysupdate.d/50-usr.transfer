@@ -1,0 +1,15 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=ci-server_@v_@u.usr.raw
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=ci-server_@v
+MatchPartitionType=usr
+PartitionFlags=0
+ReadOnly=1

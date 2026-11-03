@@ -1,0 +1,8 @@
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata: {name: nova-desk, displayName: Nova Desk, version: 2.0.0}
+foundation: {base: ubuntu-26.04, profile: desktop-gnome}
+look: {theme: {mode: light, accent: "#C2410C"}, layout: {preset: taskbar-bottom}, wallpaper: {catalog: dusk}}
+security: {level: hardened, diskEncryption: tpm2+pin, usbStorage: block}
+access: {rootModel: locked, users: {mode: directory}}
+ecosystem: {identity: {provider: ad, domain: corp.example.com}, sync: {provider: webdav, url: "https://dav.example.com/remote.php/dav"}}

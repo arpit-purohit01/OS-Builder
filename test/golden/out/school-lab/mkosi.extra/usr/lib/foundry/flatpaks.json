@@ -1,0 +1,9 @@
+{
+  "refs": [
+    "org.geogebra.GeoGebra",
+    "org.inkscape.Inkscape",
+    "org.libreoffice.LibreOffice",
+    "org.mozilla.firefox"
+  ],
+  "remote": "foundry"
+}

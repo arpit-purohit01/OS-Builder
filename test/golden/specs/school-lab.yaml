@@ -1,0 +1,45 @@
+# Shared computer-lab desktop: students sign in with school accounts, no admin rights.
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata:
+  name: school-lab
+  displayName: Campus Lab OS
+  version: 2.1.0
+foundation:
+  base: ubuntu-24.04
+  arch: [x86_64]
+  profile: desktop-gnome
+look:
+  theme: { mode: auto, accent: "#2563EB", radius: medium }
+  layout: { preset: dock-left }
+apps:
+  preinstalled:
+    - flatpak:org.mozilla.firefox
+    - flatpak:org.libreoffice.LibreOffice
+    - flatpak:org.geogebra.GeoGebra
+    - flatpak:org.inkscape.Inkscape
+  system: [printing.cups]
+security:
+  level: balanced
+  diskEncryption: tpm2
+  secureBoot: tenant-keys
+  firewall: { default: deny-inbound, allow: [printing] }
+  usbStorage: read-only
+access:
+  rootModel: locked
+  users: { mode: directory }
+kernel: { flavor: standard }
+memory: { profile: auto }
+ecosystem:
+  identity: { provider: oidc, issuer: "https://login.school.example.org", clientId: "campus-lab" }
+  appStore: { enabled: true }
+  sync: { provider: hosted }
+  fleet: { enroll: true, group: lab-a }
+branding:
+  osName: Campus Lab OS
+  osId: campus-lab
+  supportUrl: "https://it.school.example.org"
+localization: { locale: en_IN.UTF-8, keymap: us, timezone: Asia/Kolkata }
+hardware:
+  targets: [generic-uefi-x86_64]
+  extraFirmware: [firmware.intel-wifi]

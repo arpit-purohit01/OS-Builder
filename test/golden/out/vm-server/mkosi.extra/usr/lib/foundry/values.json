@@ -1,0 +1,22 @@
+{
+  "identity": {
+    "clientId": "",
+    "domain": "",
+    "issuer": "",
+    "provider": "local"
+  },
+  "memoryProfile": "workstation",
+  "osName": "CI Server",
+  "security": {
+    "diskEncryption": "tpm2",
+    "level": "balanced",
+    "secureBoot": "tenant-keys"
+  },
+  "users": [
+    {
+      "admin": true,
+      "name": "ops",
+      "passwordHash": "$6$foundryci$SvVwubDH3wlAKlkfHMvSWZlVjIi.IRedFh5ja.cUWF18GRLxeDH8LP1UXJwu7jR3/5Uay1Ov.gR.7qxz1xh5v."
+    }
+  ]
+}

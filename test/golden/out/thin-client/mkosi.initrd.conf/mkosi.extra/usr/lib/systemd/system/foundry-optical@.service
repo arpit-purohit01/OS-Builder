@@ -1,0 +1,11 @@
+[Unit]
+Description=Attach live medium %I
+DefaultDependencies=no
+ConditionKernelCommandLine=foundry.installer=1
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/losetup --find --partscan --read-only --sector-size 512 /dev/%I

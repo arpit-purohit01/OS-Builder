@@ -1,0 +1,45 @@
+# Single-app browser kiosk for low-RAM devices (2–4 GiB), locked down.
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata:
+  name: lobby-kiosk
+  displayName: Lobby Kiosk
+  version: 1.0.0
+foundation:
+  base: ubuntu-24.04
+  arch: [x86_64]
+  profile: kiosk-cage
+  bootMode: uefi
+look:
+  theme: { mode: light, accent: "#0F766E" }
+  bootSplash: { background: "#FFFFFF" }
+apps:
+  preinstalled: []
+  system: []
+security:
+  level: hardened
+  diskEncryption: tpm2
+  secureBoot: tenant-keys
+  firewall: { default: deny-inbound, allow: [] }
+  usbStorage: block
+  autoUpdates: true
+access:
+  rootModel: locked
+  users: { mode: autologin-kiosk }
+  ttyConsole: false
+kernel:
+  flavor: hardened
+memory:
+  profile: low-ram
+ecosystem:
+  fleet: { enroll: true, group: lobby }
+  kiosk:
+    url: "https://kiosk.example.com/welcome"
+    idleResetMinutes: 5
+    allowedDomains: [kiosk.example.com]
+branding:
+  osName: Lobby Kiosk
+  osId: lobby-kiosk
+localization: { locale: en_US.UTF-8, keymap: us, timezone: Europe/Berlin }
+hardware:
+  targets: [generic-uefi-x86_64]

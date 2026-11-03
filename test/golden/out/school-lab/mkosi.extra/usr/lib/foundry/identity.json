@@ -1,0 +1,5 @@
+{
+  "clientId": "campus-lab",
+  "issuer": "https://login.school.example.org",
+  "provider": "oidc"
+}

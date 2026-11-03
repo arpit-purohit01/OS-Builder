@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": false,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "",
+  "labelPrefix": "nova-desk",
+  "osId": "nova-desk",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

@@ -1,0 +1,41 @@
+#!/bin/bash
+# Foundry boot health check. Exit 0 = boot is good (systemd-bless-boot marks
+# the boot entry good); non-zero = bad (unit has FailureAction=reboot so the
+# boot counter decrements and systemd-boot eventually falls back).
+set -uo pipefail
+timeout=${FOUNDRY_HEALTH_TIMEOUT:-180}
+conf=/usr/lib/foundry/health.conf
+# shellcheck source=/dev/null
+[[ -r $conf ]] && . "$conf"
+: "${SESSION_UNITS:=}"
+: "${CRITICAL_UNITS:=}"
+# Only a trial boot (boot counting active, entry name contains "+N") may be
+# failed: failing the only entry would just reboot-loop the device.
+entry=$(cat /sys/firmware/efi/efivars/LoaderEntrySelected-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f 2>/dev/null | tail -c +5 | tr -d '\0')
+trial=0; [[ $entry == *+* ]] && trial=1
+fail() {
+  echo "foundry-health: FAIL: $*"
+  mkdir -p /var/lib/foundry && echo "$(date -u +%FT%TZ) $entry $*" >> /var/lib/foundry/health-failures.log
+  journalctl --flush 2>/dev/null
+  if [[ $trial == 1 ]]; then exit 1; fi
+  echo "foundry-health: not a trial boot ($entry); reporting only"
+  exit 0
+}
+# Test harness only: the abtest credential (passed by the hypervisor, never
+# present on devices) injects a failure into trial boots to prove fallback.
+if [[ $trial == 1 && $(cat /run/credentials/@system/foundry.boottest 2>/dev/null) == abtest ]]; then
+  fail "injected failure (boot test)"
+fi
+deadline=$(( $(date +%s) + timeout ))
+for u in $SESSION_UNITS; do
+  until systemctl is-active --quiet "$u"; do
+    [[ $(date +%s) -ge $deadline ]] && fail "session unit $u not active"
+    sleep 2
+  done
+done
+for u in $CRITICAL_UNITS; do
+  if systemctl is-failed --quiet "$u"; then fail "critical unit $u failed"; fi
+done
+if ! findmnt -n /usr >/dev/null; then fail "/usr not mounted"; fi
+echo "foundry-health: OK"
+exit 0

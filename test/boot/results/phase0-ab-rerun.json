@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-28T13:12:44.906134088Z",
+  "passed": true,
+  "reports": [
+    {
+      "scenario": {
+        "name": "ab-fallback",
+        "secureBoot": false,
+        "tpm": false,
+        "reboot": false
+      },
+      "passed": true,
+      "boots": [
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 196.003479452
+        },
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "rebooted": "yes",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 411.996884806
+        }
+      ],
+      "events": [
+        "FOUNDRY-UPDATED   VERSION INSTALLED AVAILABLE ASSESSMENT ● 1.0.1       ✓         ✓     current ○ 1.0.0       ✓               protected",
+        "FOUNDRY-REBOOTING",
+        "update 1.0.1 installed; 3 trial boots of it failed the health check; fell back to 1.0.0 (entry ci-server_1.0.0.efi)"
+      ],
+      "seconds": 614.665721958,
+      "accel": "tcg"
+    }
+  ]
+}

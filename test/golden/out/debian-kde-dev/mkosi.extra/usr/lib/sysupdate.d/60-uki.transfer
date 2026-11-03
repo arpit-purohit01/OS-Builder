@@ -1,0 +1,17 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=forge-dev_@v.efi
+
+[Target]
+Type=regular-file
+Path=/EFI/Linux
+PathRelativeTo=boot
+MatchPattern=forge-dev_@v+@l-@d.efi forge-dev_@v+@l.efi forge-dev_@v.efi
+Mode=0444
+TriesLeft=3
+TriesDone=0
+InstancesMax=2

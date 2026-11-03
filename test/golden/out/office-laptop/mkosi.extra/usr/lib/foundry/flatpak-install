@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+"""Install the OS's preinstalled Flatpak apps (first boot, retried until done).
+
+Prefers the offline sideload repository baked into the image; falls back to
+the configured remote when online. Marks completion per app list digest.
+"""
+import hashlib, json, os, subprocess, sys
+cfg = json.load(open("/usr/lib/foundry/flatpaks.json"))
+refs = cfg.get("refs", [])
+digest = hashlib.sha256(json.dumps(refs).encode()).hexdigest()[:16]
+mark = f"/var/lib/foundry/flatpaks-{digest}.done"
+if not refs or os.path.exists(mark):
+    sys.exit(0)
+remote = cfg.get("remote", "foundry")
+sideload = "/usr/share/foundry/flatpak-sideload"
+failed = []
+for ref in refs:
+    args = ["flatpak", "install", "--system", "--noninteractive", "--or-update"]
+    if os.path.isdir(sideload):
+        args.append("--sideload-repo=" + sideload)
+    if subprocess.run(args + [remote, ref]).returncode != 0:
+        failed.append(ref)
+if failed:
+    print("foundry-flatpak: will retry:", " ".join(failed), file=sys.stderr)
+    sys.exit(1)
+os.makedirs("/var/lib/foundry", exist_ok=True)
+open(mark, "w").close()

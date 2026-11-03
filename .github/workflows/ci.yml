@@ -1,0 +1,39 @@
+# CI (Phase 0, P0-03). Unit/lint/golden run on any runner; image build and
+# boot tests need a self-hosted runner with /dev/kvm (label "kvm"), one job
+# per ephemeral VM. Without KVM the same jobs work but boots take minutes.
+name: ci
+on: [push, pull_request]
+env:
+  GOTOOLCHAIN: local
+  GOFLAGS: -mod=vendor
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ["5432:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.24.7" }
+      - run: sudo scripts/host-deps.sh
+      - run: make lint
+      - run: FOUNDRY_REQUIRE_PG=1 make test-race
+      - run: make golden
+  phase0:
+    needs: unit
+    runs-on: [self-hosted, kvm]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: make tools-tree   # cached on the runner image
+      - run: make phase0 PHASE0=$RUNNER_TEMP/phase0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-report
+          path: |
+            ${{ runner.temp }}/phase0/acceptance.json
+            ${{ runner.temp }}/phase0/work/serial-*.log

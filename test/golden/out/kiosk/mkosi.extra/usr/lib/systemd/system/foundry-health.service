@@ -1,0 +1,16 @@
+[Unit]
+Description=Foundry boot health check
+Documentation=https://docs.foundry.dev/updates#health
+Before=boot-complete.target
+After=graphical.target multi-user.target
+FailureAction=reboot
+# Live/installer sessions are not update trials.
+ConditionKernelCommandLine=!foundry.installer=1
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/foundry/health
+
+[Install]
+RequiredBy=boot-complete.target

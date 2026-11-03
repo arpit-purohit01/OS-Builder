@@ -1,0 +1,8 @@
+# Smallest bootable image: headless, VM target. Used for fast boot/A-B/rollback tests.
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata: {name: ci-server, displayName: CI Server, version: 1.0.0}
+foundation: {base: ubuntu-24.04, profile: server}
+security: {level: balanced, diskEncryption: tpm2}
+access: {rootModel: admin-password, users: {mode: predefined, predefined: [{name: ops, admin: true, passwordHash: "$6$foundryci$SvVwubDH3wlAKlkfHMvSWZlVjIi.IRedFh5ja.cUWF18GRLxeDH8LP1UXJwu7jR3/5Uay1Ov.gR.7qxz1xh5v."}]}}
+hardware: {targets: [generic-vm-x86_64]}

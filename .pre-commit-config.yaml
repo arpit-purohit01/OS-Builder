@@ -1,0 +1,6 @@
+repos:
+  - repo: local
+    hooks:
+      - { id: gofmt, name: gofmt, entry: gofmt -l -w, language: system, files: '\.go$' }
+      - { id: go-vet, name: go vet, entry: make lint, language: system, pass_filenames: false, files: '\.(go|sh)$' }
+      - { id: golden, name: golden outputs, entry: make golden, language: system, pass_filenames: false, files: '^(internal/compiler|catalog|test/golden)/' }

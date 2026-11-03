@@ -1,0 +1,16 @@
+[Unit]
+Description=Foundry build agent (runs one job, then powers off)
+After=network-online.target systemd-udev-settle.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/foundry-builder vm
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=infinity
+FailureAction=poweroff-force
+SuccessAction=poweroff-force
+
+[Install]
+WantedBy=multi-user.target

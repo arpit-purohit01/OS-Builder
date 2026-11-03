@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": false,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "",
+  "labelPrefix": "desk-terminal",
+  "osId": "desk-terminal",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

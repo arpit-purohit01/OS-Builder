@@ -1,0 +1,16 @@
+{
+  "identity": {
+    "clientId": "campus-lab",
+    "domain": "",
+    "issuer": "https://login.school.example.org",
+    "provider": "oidc"
+  },
+  "memoryProfile": "desktop",
+  "osName": "Campus Lab OS",
+  "security": {
+    "diskEncryption": "tpm2",
+    "level": "balanced",
+    "secureBoot": "tenant-keys"
+  },
+  "users": []
+}

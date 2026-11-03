@@ -1,0 +1,21 @@
+[Unit]
+Description=Foundry installer
+Documentation=https://docs.foundry.dev/install
+ConditionKernelCommandLine=foundry.installer=1
+After=systemd-udev-settle.service local-fs.target systemd-user-sessions.service
+Wants=systemd-udev-settle.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=idle
+ExecStart=/usr/lib/foundry/foundry-installer run
+ImportCredential=foundry.install
+StandardInput=tty
+StandardOutput=tty
+StandardError=journal+console
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

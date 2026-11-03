@@ -1,0 +1,118 @@
+#!/usr/bin/python3
+"""Foundry kiosk browser: a locked-down, full-screen WebKit view.
+
+Configuration: /usr/lib/foundry/kiosk.json (image default), overridden by
+/etc/foundry/kiosk.json (written by fleet policy). Keys:
+  url               start page (https only)
+  allowedDomains    extra host names navigation may reach (start host always allowed)
+  idleResetMinutes  clear all browsing data and return home after N idle minutes (0 = off)
+"""
+import json
+import os
+import sys
+import time
+from urllib.parse import urlparse
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("WebKit2", "4.1")
+from gi.repository import GLib, Gtk, WebKit2  # noqa: E402
+
+CONFIGS = ["/usr/lib/foundry/kiosk.json", "/etc/foundry/kiosk.json"]
+
+
+def load_config():
+    cfg = {"url": "about:blank", "allowedDomains": [], "idleResetMinutes": 0}
+    for path in CONFIGS:
+        try:
+            with open(path, encoding="utf-8") as f:
+                cfg.update(json.load(f))
+        except FileNotFoundError:
+            pass
+        except (OSError, ValueError) as e:
+            print(f"kiosk: ignoring {path}: {e}", file=sys.stderr)
+    return cfg
+
+
+def host_allowed(url, allowed):
+    p = urlparse(url)
+    if p.scheme == "about":
+        return True
+    if p.scheme != "https" or not p.hostname:
+        return False
+    h = p.hostname.lower()
+    return any(h == d or h.endswith("." + d) for d in allowed)
+
+
+class Kiosk:
+    def __init__(self, cfg):
+        self.cfg = cfg
+        start = urlparse(cfg["url"]).hostname or ""
+        self.allowed = sorted({d.lower() for d in cfg.get("allowedDomains", [])} | ({start.lower()} if start else set()))
+        self.idle = int(cfg.get("idleResetMinutes") or 0) * 60
+        self.last_input = time.monotonic()
+        self.ctx = WebKit2.WebContext.new_ephemeral()
+        self.view = WebKit2.WebView.new_with_context(self.ctx)
+        s = self.view.get_settings()
+        s.set_enable_developer_extras(False)
+        s.set_javascript_can_open_windows_automatically(False)
+        s.set_enable_write_console_messages_to_stdout(False)
+        self.view.connect("decide-policy", self.on_policy)
+        self.view.connect("context-menu", lambda *a: True)
+        self.view.connect("web-process-terminated", self.on_crash)
+        self.view.connect("create", lambda *a: None)  # no new windows
+        self.win = Gtk.Window()
+        self.win.add(self.view)
+        self.win.connect("destroy", Gtk.main_quit)
+        for sig in ("key-press-event", "button-press-event", "motion-notify-event", "touch-event", "scroll-event"):
+            self.win.connect(sig, self.on_input)
+        self.win.fullscreen()
+        self.win.show_all()
+        self.home()
+        if self.idle:
+            GLib.timeout_add_seconds(15, self.check_idle)
+
+    def home(self):
+        self.view.load_uri(self.cfg["url"])
+
+    def on_input(self, *args):
+        self.last_input = time.monotonic()
+        return False
+
+    def check_idle(self):
+        if time.monotonic() - self.last_input >= self.idle:
+            self.ctx.get_website_data_manager().clear(WebKit2.WebsiteDataTypes.ALL, 0, None, None, None)
+            self.home()
+            self.last_input = time.monotonic()
+        return True
+
+    def on_crash(self, view, reason):
+        print(f"kiosk: web process ended ({reason}); reloading", file=sys.stderr)
+        GLib.timeout_add_seconds(2, lambda: (self.home(), False)[1])
+
+    def on_policy(self, view, decision, kind):
+        if kind in (WebKit2.PolicyDecisionType.NAVIGATION_ACTION, WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION):
+            uri = decision.get_navigation_action().get_request().get_uri()
+            if kind == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION or not host_allowed(uri, self.allowed):
+                print(f"kiosk: blocked navigation to {uri}", file=sys.stderr)
+                decision.ignore()
+                return True
+        return False
+
+
+def main():
+    if "--check-url" in sys.argv:  # used by tests: kiosk-browser --check-url URL
+        cfg = load_config()
+        start = urlparse(cfg["url"]).hostname or ""
+        allowed = {d.lower() for d in cfg.get("allowedDomains", [])} | {start.lower()}
+        print("allowed" if host_allowed(sys.argv[-1], allowed) else "blocked")
+        return 0
+    os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+    Kiosk(load_config())
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

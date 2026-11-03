@@ -1,0 +1,9 @@
+NAME="Campus Lab OS"
+PRETTY_NAME="Campus Lab OS 2.1.0"
+ID=campus-lab
+ID_LIKE="ubuntu debian"
+VERSION="2.1.0"
+VERSION_ID=2.1.0
+SUPPORT_URL="https://it.school.example.org"
+FOUNDRY_BASE="ubuntu-24.04"
+FOUNDRY_SPEC_DIGEST="sha256:ed8f45fbd31fca63e02632d63b4bc9e36b6324c15ba5e93eef134d35755e7dfd"

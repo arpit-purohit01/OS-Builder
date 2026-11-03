@@ -1,0 +1,4 @@
+enable foundry-builder.service
+enable systemd-networkd.service
+disable getty@.service
+disable serial-getty@.service

@@ -1,0 +1,13 @@
+options:
+  - {id: identity.local, kind: identity, label: Local accounts, oneOf: identity, ui: {levels: [simple, custom, expert]}}
+  - {id: identity.oidc, kind: identity, label: Single sign-on (OIDC), oneOf: identity, requires: [session.graphical], components: [oidc-login], ui: {levels: [simple, custom, expert]}}
+  - {id: identity.ldap, kind: identity, label: LDAP directory, oneOf: identity, packages: {default: [sssd, libpam-sss, libnss-sss]}, ui: {levels: [custom, expert]}}
+  - {id: identity.ad, kind: identity, label: Active Directory, oneOf: identity, packages: {default: [sssd, realmd, adcli, libpam-sss, libnss-sss]}, ui: {levels: [custom, expert]}}
+  - {id: ecosystem.appstore, kind: ecosystem, label: Company app store, requires: [app.flatpak, session.desktop], packages: {default: [gnome-software, gnome-software-plugin-flatpak]}, ui: {levels: [simple, custom, expert]}}
+  - {id: ecosystem.sync.hosted, kind: ecosystem, label: Hosted file sync, oneOf: sync, requires: [session.desktop], packages: {default: [nextcloud-desktop]}, ui: {levels: [simple, custom, expert]}}
+  - {id: ecosystem.sync.webdav, kind: ecosystem, label: Your WebDAV server, oneOf: sync, requires: [session.desktop], packages: {default: [nextcloud-desktop]}, ui: {levels: [custom, expert]}}
+  - {id: ecosystem.sync.none, kind: ecosystem, label: No sync, oneOf: sync, ui: {levels: [simple, custom, expert]}}
+  - {id: ecosystem.handoff, kind: ecosystem, label: Phone & device handoff, requires: [session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: ecosystem.handoff.kde, kind: ecosystem, label: KDE Connect, requires: [ecosystem.handoff, desktop.kde], packages: {default: [kdeconnect]}, ui: {levels: [expert]}}
+  - {id: ecosystem.handoff.gnome, kind: ecosystem, label: GSConnect, requires: [ecosystem.handoff, desktop.gnome], packages: {default: [gnome-shell-extension-gsconnect]}, ui: {levels: [expert]}}
+  - {id: ecosystem.fleet, kind: ecosystem, label: Fleet management, ui: {levels: [simple, custom, expert]}}

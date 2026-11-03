@@ -1,0 +1,41 @@
+phase0: building v1 from test/golden/specs/vm-server.yaml
+phase0: building v2 from test/boot/specs/vm-server-v2.yaml
+phase0: signing ci-server_1.0.0 for tenant dev
+phase0: signing ci-server_1.0.1 for tenant dev
+phase0: signing ci-server_1.0.0 for tenant foreign
+phase0: running boot acceptance tests (TCG without /dev/kvm is slow: ~1 h)
+tester: uefi-tpm-reboot: boot session 1 (tcg, secure boot false, tpm true, mode "reboot")
+tester: uefi-tpm-reboot: boot 1 reported after 112s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:2ef01e15a60d1a23f113900b0d6db2a4b003a7a6874016375ccfcd1e66c3223f root:/dev/mapper/root sb:unknown slot:ci-server_1.0.0 state:running tpm2:yes unseal:allowed usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: uefi-tpm-reboot: boot 2 reported after 126s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:2ef01e15a60d1a23f113900b0d6db2a4b003a7a6874016375ccfcd1e66c3223f rebooted:yes root:/dev/mapper/root sb:unknown slot:ci-server_1.0.0 state:running tpm2:yes unseal:allowed usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: sb-tpm-reboot: boot session 1 (tcg, secure boot true, tpm true, mode "reboot")
+tester: sb-tpm-reboot: boot 1 reported after 124s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599 root:/dev/mapper/root sb:1 slot:ci-server_1.0.0 state:running tpm2:yes unseal:refused usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: sb-tpm-reboot: boot 2 reported after 110s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599 rebooted:yes root:/dev/mapper/root sb:1 slot:ci-server_1.0.0 state:running tpm2:yes unseal:refused usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: sb-unsigned-uki: boot session 1 (tcg, secure boot true, tpm false, mode "")
+tester: sb-unsigned-uki: matched "Error loading \\EFI\\Linux\\ci-server_1.0.0.efi: Access denied"
+tester: verity-corruption: boot session 1 (tcg, secure boot false, tpm true, mode "report")
+tester: verity-corruption: matched "[   21.699202] device-mapper: verity: 253:2: data block 0 is corrupted"
+tester: tpm-foreign-pcr-key: boot session 1 (tcg, secure boot false, tpm true, mode "report")
+tester: tpm-foreign-pcr-key: boot 1 reported after 114s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599 root:/dev/mapper/root sb:unknown slot:ci-server_1.0.0 state:running tpm2:yes unseal:refused usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: tpm-foreign-pcr-key: boot session 2 (tcg, secure boot false, tpm true, mode "report")
+tester: tpm-foreign-pcr-key: matched "[FAILED] Failed to start systemd-cryptsetup…vice - Cryptography Setup for root."
+tester: ab-fallback: boot session 1 (tcg, secure boot false, tpm true, mode "abtest")
+tester: ab-fallback: FOUNDRY-UPDATED   VERSION INSTALLED AVAILABLE ASSESSMENT ● 1.0.1       ✓         ✓     current ○ 1.0.0       ✓               protected
+tester: ab-fallback: boot 1 reported after 208s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599 root:/dev/mapper/root sb:unknown slot:ci-server_1.0.0 state:running tpm2:yes unseal:refused usr:/dev/mapper/usr verity:verified version:1.0.0]
+tester: ab-fallback: boot 2 reported after 440s: map[bootcomplete:inactive crypt:yes entry:ci-server_1.0.0.efi failed: health:inactive id:ci-server image:ci-server pcr11:b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599 rebooted:yes root:/dev/mapper/root sb:unknown slot:ci-server_1.0.0 state:running tpm2:yes unseal:refused usr:/dev/mapper/usr verity:verified version:1.0.0]
+Phase 0 acceptance
+  PASS uefi-tpm-reboot          238s  tcg
+         · FOUNDRY-REBOOTING
+  PASS sb-tpm-reboot            234s  tcg
+         · FOUNDRY-REBOOTING
+  PASS sb-unsigned-uki           16s  tcg
+         · refused: Error loading \EFI\Linux\ci-server_1.0.0.efi: Access denied
+  PASS verity-corruption         47s  tcg
+         · flipped byte at usr+1024 (disk offset 1074791424)
+         · kernel: [   21.699202] device-mapper: verity: 253:2: data block 0 is corrupted
+  PASS tpm-foreign-pcr-key      160s  tcg
+         · unchanged boot: root unlocked by TPM2; unseal from running system refused
+         · unlock refused: [FAILED] Failed to start systemd-cryptsetup…vice - Cryptography Setup for root.
+  PASS ab-fallback              655s  tcg
+         · FOUNDRY-UPDATED   VERSION INSTALLED AVAILABLE ASSESSMENT ● 1.0.1       ✓         ✓     current ○ 1.0.0       ✓               protected
+         · FOUNDRY-REBOOTING
+         · update installed, 0 failing trial boot(s) reported, final entry ci-server_1.0.0.efi

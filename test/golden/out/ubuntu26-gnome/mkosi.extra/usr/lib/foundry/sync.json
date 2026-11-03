@@ -1,0 +1,4 @@
+{
+  "provider": "webdav",
+  "server": "https://dav.example.com/remote.php/dav"
+}

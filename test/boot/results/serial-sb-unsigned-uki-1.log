@@ -1,0 +1,7 @@
+[=3h[=3hBdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
+BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
+Enrolling secure boot keys from directory: \loader\keys\auto
+Custom Secure Boot keys successfully enrolled, rebooting the system now!
+[=3h[=3hBdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
+BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x1,0x0)
+Error loading \EFI\Linux\ci-server_1.0.0.efi: Access denied

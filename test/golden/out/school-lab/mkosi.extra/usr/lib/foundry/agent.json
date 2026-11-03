@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": true,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "lab-a",
+  "labelPrefix": "campus-lab",
+  "osId": "campus-lab",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

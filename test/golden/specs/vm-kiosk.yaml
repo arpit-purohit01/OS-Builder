@@ -1,0 +1,10 @@
+# Small kiosk used by CI boot tests (VM hardware target, no firmware packages).
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata: {name: ci-kiosk, displayName: CI Kiosk, version: 1.0.0}
+foundation: {base: ubuntu-24.04, profile: kiosk-cage}
+security: {level: balanced, diskEncryption: tpm2, usbStorage: read-only}
+ecosystem:
+  kiosk: {url: "https://kiosk.example.com/", idleResetMinutes: 2, allowedDomains: [cdn.example.com]}
+  fleet: {enroll: true, group: ci}
+hardware: {targets: [generic-vm-x86_64]}

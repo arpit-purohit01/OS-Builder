@@ -1,0 +1,145 @@
+# Foundation options: profiles (sessions), kernels, hardware classes.
+# Fields: see docs/context/osspec-format.md §6. Base keys: ubuntu-24.04, ubuntu-26.04, debian-13; "default" applies to all.
+options:
+  - id: profile.desktop-gnome
+    kind: profile
+    label: GNOME desktop
+    oneOf: profile
+    provides: [session.graphical, session.desktop, desktop.gnome]
+    packages:
+      default: [gnome-shell, gdm3, gnome-session, gnome-control-center, nautilus, gnome-terminal, xdg-desktop-portal-gnome, network-manager-gnome, adwaita-icon-theme, fonts-cantarell, pipewire, wireplumber]
+      ubuntu-24.04: [gnome-shell, gdm3, gnome-session, gnome-control-center, nautilus, gnome-terminal, xdg-desktop-portal-gnome, network-manager-gnome, adwaita-icon-theme, yaru-theme-gtk, fonts-cantarell, pipewire, wireplumber]
+    ui: {icon: desktop, levels: [simple, custom, expert], help: "A clean, modern desktop that is easy for anyone to use."}
+  - id: profile.desktop-kde
+    kind: profile
+    label: KDE Plasma desktop
+    oneOf: profile
+    provides: [session.graphical, session.desktop, desktop.kde]
+    packages:
+      default: [kde-plasma-desktop, sddm, sddm-theme-breeze, dolphin, konsole, plasma-nm, breeze-icon-theme, pipewire, wireplumber]
+    ui: {icon: desktop, levels: [simple, custom, expert], help: "A flexible desktop with a taskbar or dock, highly customizable."}
+  - id: profile.kiosk-cage
+    kind: profile
+    label: Single-app kiosk
+    oneOf: profile
+    provides: [session.graphical, session.kiosk]
+    requires: [app.kiosk-browser]
+    packages:
+      default: [cage, seatd, fonts-dejavu-core, libgl1-mesa-dri]
+    ui: {icon: kiosk, levels: [simple, custom, expert], help: "Runs one web app full screen. Nothing else is reachable."}
+  - id: profile.thin-client
+    kind: profile
+    label: Thin client (remote desktop)
+    oneOf: profile
+    provides: [session.graphical, session.kiosk]
+    packages:
+      default: [cage, seatd, freerdp2-wayland, fonts-dejavu-core, libgl1-mesa-dri]
+      ubuntu-26.04: [cage, seatd, freerdp3-wayland, fonts-dejavu-core, libgl1-mesa-dri]
+    ui: {icon: remote, levels: [simple, custom, expert], help: "Boots straight into a remote desktop session."}
+  - id: profile.server
+    kind: profile
+    label: Headless server
+    oneOf: profile
+    provides: [session.headless]
+    packages:
+      default: []
+    ui: {icon: server, levels: [custom, expert], help: "No graphical interface; for appliances and servers."}
+
+  - id: app.kiosk-browser
+    kind: app
+    label: Foundry kiosk browser (WebKit)
+    packages:
+      default: [python3-gi, gir1.2-webkit2-4.1, gir1.2-gtk-3.0]
+    ui: {levels: [expert], help: "Locked-down full-screen browser with domain allow-list and idle reset."}
+
+  - id: kernel.standard
+    kind: kernel
+    label: Standard kernel
+    oneOf: kernel
+    packages:
+      default: [linux-image-generic]
+      debian-13: [linux-image-amd64]
+    vmPackages:
+      default: [linux-image-virtual, linux-image-extra-virtual]
+      debian-13: [linux-image-cloud-amd64]
+    ui: {levels: [custom, expert], help: "Best hardware support. Recommended."}
+  - id: kernel.hardened
+    kind: kernel
+    label: Hardened kernel settings
+    oneOf: kernel
+    packages:
+      default: [linux-image-generic]
+      debian-13: [linux-image-amd64]
+    vmPackages:
+      default: [linux-image-virtual, linux-image-extra-virtual]
+      debian-13: [linux-image-cloud-amd64]
+    ui: {levels: [custom, expert], help: "Extra memory-safety and lockdown settings, slightly slower."}
+  - id: kernel.gaming
+    kind: kernel
+    label: Low-latency (gaming/audio)
+    oneOf: kernel
+    packages:
+      default: [linux-image-lowlatency]
+      debian-13: [linux-image-amd64]
+    vmPackages:
+      default: [linux-image-lowlatency]
+      debian-13: [linux-image-amd64]
+    conflicts: [session.headless]
+    ui: {levels: [custom, expert], help: "Lower input and audio latency for games and media."}
+  - id: kernel.realtime
+    kind: kernel
+    label: Real-time kernel (PREEMPT_RT)
+    oneOf: kernel
+    bases: [debian-13]
+    packages:
+      debian-13: [linux-image-rt-amd64]
+    ui: {levels: [expert], help: "Deterministic latency for industrial and audio work."}
+
+  - id: hw.generic-uefi-x86_64
+    kind: hardware
+    label: Any UEFI PC (x86_64)
+    arch: [x86_64]
+    packages:
+      default: [linux-firmware, intel-microcode, amd64-microcode, fwupd, bolt]
+      debian-13: [firmware-linux-free, firmware-misc-nonfree, intel-microcode, amd64-microcode, fwupd]
+    ui: {levels: [simple, custom, expert]}
+    hcl: {status: tested, tested: [ubuntu-24.04], notes: "QEMU/OVMF with swtpm in CI; physical PCs vary."}
+  - id: hw.generic-vm-x86_64
+    kind: hardware
+    label: Virtual machine (x86_64)
+    arch: [x86_64]
+    virtual: true
+    packages:
+      default: []
+    ui: {levels: [custom, expert], help: "Smaller image without hardware firmware, for VMs only."}
+    hcl: {status: tested, tested: [ubuntu-24.04]}
+  - id: hw.generic-uefi-aarch64
+    kind: hardware
+    label: Any UEFI ARM64 device
+    arch: [aarch64]
+    packages:
+      default: [linux-firmware]
+    ui: {levels: [custom, expert]}
+  - id: hw.lenovo-thinkpad-t14-gen4
+    kind: hardware
+    label: Lenovo ThinkPad T14 Gen 4
+    arch: [x86_64]
+    requires: [hw.generic-uefi-x86_64]
+    packages:
+      default: [firmware-sof-signed, alsa-ucm-conf, fprintd]
+    ui: {levels: [simple, custom, expert], help: "Certified: includes audio and fingerprint firmware."}
+    hcl: {status: certified, tested: [ubuntu-24.04]}
+  - id: firmware.intel-wifi
+    kind: firmware
+    label: Intel Wi-Fi firmware
+    packages:
+      default: [linux-firmware]
+      debian-13: [firmware-iwlwifi]
+    ui: {levels: [custom, expert]}
+  - id: firmware.realtek
+    kind: firmware
+    label: Realtek network firmware
+    packages:
+      default: [linux-firmware]
+      debian-13: [firmware-realtek]
+    ui: {levels: [custom, expert]}

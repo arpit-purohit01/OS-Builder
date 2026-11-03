@@ -1,0 +1,15 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=forge-dev_@v_@u.usr-verity.raw
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=forge-dev_@v_v
+MatchPartitionType=usr-verity
+PartitionFlags=0
+ReadOnly=1

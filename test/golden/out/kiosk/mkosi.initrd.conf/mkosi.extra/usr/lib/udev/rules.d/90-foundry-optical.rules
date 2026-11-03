@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sr[0-9]*", ENV{ID_CDROM_MEDIA}!="0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="foundry-optical@%k.service"

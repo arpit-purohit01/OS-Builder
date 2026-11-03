@@ -1,0 +1,5 @@
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata: {name: desk-terminal, version: 1.1.0}
+foundation: {base: ubuntu-24.04, profile: thin-client}
+ecosystem: {kiosk: {url: "https://rds.example.com"}}

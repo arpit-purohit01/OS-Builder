@@ -1,0 +1,8 @@
+NAME="CI Server"
+PRETTY_NAME="CI Server 1.0.0"
+ID=ci-server
+ID_LIKE="ubuntu debian"
+VERSION="1.0.0"
+VERSION_ID=1.0.0
+FOUNDRY_BASE="ubuntu-24.04"
+FOUNDRY_SPEC_DIGEST="sha256:a4ea96e15696173e926e30ffefbd9cf20dc64122339a6f61c65cbe491b9b25bd"

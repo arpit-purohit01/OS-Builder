@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": true,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "ci",
+  "labelPrefix": "ci-kiosk",
+  "osId": "ci-kiosk",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

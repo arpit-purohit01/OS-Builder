@@ -1,0 +1,27 @@
+options:
+  - {id: security.level.relaxed, kind: security, label: Relaxed, oneOf: security-level, ui: {levels: [simple, custom, expert]}}
+  - {id: security.level.balanced, kind: security, label: Balanced, oneOf: security-level, packages: {default: [apparmor]}, ui: {levels: [simple, custom, expert]}}
+  - {id: security.level.hardened, kind: security, label: Hardened, oneOf: security-level, packages: {default: [apparmor, auditd]}, conflicts: [access.developer, secureboot.off, disk.none], ui: {levels: [simple, custom, expert]}}
+  - {id: disk.none, kind: security, label: No disk encryption, oneOf: disk, ui: {levels: [expert]}}
+  - {id: disk.tpm2, kind: security, label: Encrypted (TPM), oneOf: disk, packages: {default: [cryptsetup, tpm2-tools]}, ui: {levels: [simple, custom, expert]}}
+  - {id: disk.tpm2-pin, kind: security, label: Encrypted (TPM + PIN), oneOf: disk, packages: {default: [cryptsetup, tpm2-tools]}, conflicts: [session.kiosk], ui: {levels: [custom, expert]}}
+  - {id: disk.passphrase, kind: security, label: Encrypted (passphrase), oneOf: disk, packages: {default: [cryptsetup]}, conflicts: [session.kiosk], ui: {levels: [custom, expert]}}
+  - {id: secureboot.tenant-keys, kind: security, label: Secure Boot (your keys), oneOf: secureboot, ui: {levels: [simple, custom, expert]}}
+  - {id: secureboot.shim-mok, kind: security, label: Secure Boot (shim + MOK), oneOf: secureboot, packages: {default: [shim-signed, mokutil]}, ui: {levels: [custom, expert]}}
+  - {id: secureboot.off, kind: security, label: Secure Boot off, oneOf: secureboot, ui: {levels: [expert]}}
+  - {id: usb.allow, kind: security, label: USB storage allowed, oneOf: usb, ui: {levels: [simple, custom, expert]}}
+  - {id: usb.read-only, kind: security, label: USB storage read-only, oneOf: usb, ui: {levels: [custom, expert]}}
+  - {id: usb.block, kind: security, label: USB storage blocked, oneOf: usb, packages: {default: [usbguard]}, ui: {levels: [custom, expert]}}
+  - {id: access.locked, kind: access, label: Locked (no admin), oneOf: access, ui: {levels: [simple, custom, expert]}}
+  - {id: access.admin-password, kind: access, label: Admin with password, oneOf: access, packages: {default: [sudo]}, ui: {levels: [simple, custom, expert]}}
+  - {id: access.developer, kind: access, label: Developer (full root), oneOf: access, packages: {default: [sudo, systemd-container]}, ui: {levels: [custom, expert]}}
+  - {id: memory.auto, kind: memory, label: Automatic, oneOf: memory, ui: {levels: [custom, expert]}}
+  - {id: memory.low-ram, kind: memory, label: Low RAM (≤4 GB), oneOf: memory, ui: {levels: [custom, expert]}}
+  - {id: memory.desktop, kind: memory, label: Desktop (4–16 GB), oneOf: memory, ui: {levels: [custom, expert]}}
+  - {id: memory.workstation, kind: memory, label: Workstation (>16 GB), oneOf: memory, ui: {levels: [custom, expert]}}
+  - {id: fw.allow.mdns, kind: firewall, label: Local discovery (mDNS), packages: {default: [avahi-daemon]}, ui: {levels: [custom, expert]}}
+  - {id: fw.allow.ssh, kind: firewall, label: Remote login (SSH), packages: {default: [openssh-server]}, conflicts: [access.locked], risk: {flags: [remote-login]}, ui: {levels: [expert]}}
+  - {id: fw.allow.kdeconnect, kind: firewall, label: Phone connection, requires: [ecosystem.handoff], ui: {levels: [custom, expert]}}
+  - {id: fw.allow.printing, kind: firewall, label: Network printing, requires: [printing.cups], ui: {levels: [custom, expert]}}
+  - {id: fw.allow.rdp, kind: firewall, label: Remote desktop (RDP), requires: [session.desktop], risk: {flags: [remote-desktop]}, ui: {levels: [expert]}}
+  - {id: fw.allow.vnc, kind: firewall, label: Remote desktop (VNC), requires: [session.desktop], risk: {flags: [remote-desktop]}, ui: {levels: [expert]}}

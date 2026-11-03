@@ -1,0 +1,16 @@
+options:
+  - {id: printing.cups, kind: app, label: Printing, packages: {default: [cups, printer-driver-gutenprint, system-config-printer]}, ui: {levels: [simple, custom, expert], help: "Print to local and network printers."}}
+  - {id: vpn.wireguard, kind: app, label: WireGuard VPN, packages: {default: [wireguard-tools]}, ui: {levels: [custom, expert]}}
+  - {id: app.openssh-client, kind: app, label: SSH client, packages: {default: [openssh-client]}, ui: {levels: [expert]}}
+  - {id: app.remote-desktop-client, kind: app, label: Remote desktop client, requires: [session.desktop], packages: {default: [remmina]}, ui: {levels: [custom, expert]}}
+  - {id: app.flatpak, kind: app, label: Flatpak app support, packages: {default: [flatpak]}, ui: {levels: [expert]}}
+  - {id: flatpak:org.mozilla.firefox, kind: flatpak, label: Firefox, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Web browser."}}
+  - {id: flatpak:org.libreoffice.LibreOffice, kind: flatpak, label: LibreOffice, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Documents, spreadsheets and presentations."}}
+  - {id: flatpak:org.videolan.VLC, kind: flatpak, label: VLC, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Plays any video or music file."}}
+  - {id: flatpak:org.geogebra.GeoGebra, kind: flatpak, label: GeoGebra, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Math for schools."}}
+  - {id: flatpak:org.inkscape.Inkscape, kind: flatpak, label: Inkscape, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Vector drawing."}}
+  - {id: flatpak:org.gimp.GIMP, kind: flatpak, label: GIMP, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Photo editing."}}
+  - {id: flatpak:com.github.tchx84.Flatseal, kind: flatpak, label: Flatseal, requires: [app.flatpak, session.desktop, access.developer], ui: {levels: [expert], help: "Manage app permissions."}}
+  - {id: flatpak:org.chromium.Chromium, kind: flatpak, label: Chromium, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert], help: "Web browser."}}
+  - {id: flatpak:org.gnome.Calculator, kind: flatpak, label: Calculator, requires: [app.flatpak, session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: flatpak:com.valvesoftware.Steam, kind: flatpak, label: Steam, requires: [app.flatpak, session.desktop], ui: {levels: [custom, expert], help: "Games."}}

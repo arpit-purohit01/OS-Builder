@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "clientId": "aurora-desktop",
+    "domain": "",
+    "issuer": "https://login.example.com",
+    "provider": "oidc"
+  },
+  "memoryProfile": "desktop",
+  "osName": "Aurora OS",
+  "rootModel": "admin-password",
+  "security": {
+    "diskEncryption": "tpm2+pin",
+    "level": "balanced",
+    "secureBoot": "tenant-keys"
+  },
+  "users": []
+}

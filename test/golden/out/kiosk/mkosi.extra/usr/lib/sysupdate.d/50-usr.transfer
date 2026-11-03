@@ -1,0 +1,15 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=lobby-kiosk_@v_@u.usr.raw
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=lobby-kiosk_@v
+MatchPartitionType=usr
+PartitionFlags=0
+ReadOnly=1

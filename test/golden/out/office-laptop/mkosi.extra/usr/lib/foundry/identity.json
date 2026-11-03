@@ -1,0 +1,5 @@
+{
+  "clientId": "aurora-desktop",
+  "issuer": "https://login.example.com",
+  "provider": "oidc"
+}

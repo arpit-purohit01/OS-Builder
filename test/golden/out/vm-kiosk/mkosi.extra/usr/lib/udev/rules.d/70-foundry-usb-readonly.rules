@@ -1,0 +1,2 @@
+# USB mass storage is read-only (security.usbStorage: read-only)
+ACTION=="add|change", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", RUN+="/usr/sbin/blockdev --setro $devnode"

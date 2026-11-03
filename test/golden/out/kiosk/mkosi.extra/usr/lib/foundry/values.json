@@ -1,0 +1,16 @@
+{
+  "identity": {
+    "clientId": "",
+    "domain": "",
+    "issuer": "",
+    "provider": "local"
+  },
+  "memoryProfile": "low-ram",
+  "osName": "Lobby Kiosk",
+  "security": {
+    "diskEncryption": "tpm2",
+    "level": "hardened",
+    "secureBoot": "tenant-keys"
+  },
+  "users": []
+}

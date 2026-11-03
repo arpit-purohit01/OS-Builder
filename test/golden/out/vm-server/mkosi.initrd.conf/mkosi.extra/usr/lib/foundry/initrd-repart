@@ -1,0 +1,34 @@
+#!/bin/bash
+# Foundry first-boot partitioning (runs in the initrd as systemd-repart.service).
+#
+# Finds the disk we booted from via the LoaderDevicePartUUID EFI variable
+# (set by systemd-boot) and runs systemd-repart on it. systemd 255 cannot
+# resolve the boot disk through the dm-verity /usr mapping by itself, and it
+# reads definitions from /sysusr unless told otherwise.
+#
+# Root encryption: definitions in /usr/lib/repart.d encrypt root with the TPM.
+# If no TPM is present the policy file decides: "allow-unencrypted" uses
+# /usr/lib/foundry/repart-plain.d, otherwise we refuse to create an
+# unencrypted root and reboot (the device stays unprovisioned).
+set -euo pipefail
+log() { echo "foundry-repart: $*"; }
+var=/sys/firmware/efi/efivars/LoaderDevicePartUUID-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+if [[ ! -r $var ]]; then log "no LoaderDevicePartUUID (not booted via systemd-boot); skipping"; exit 0; fi
+uuid=$(cat "$var" | tail -c +5 | tr -d '\0' | tr 'A-Z' 'a-z')
+part=$(readlink -f "/dev/disk/by-partuuid/$uuid")
+disk=/dev/$(basename "$(readlink -f "/sys/class/block/$(basename "$part")/..")")
+defs=/usr/lib/repart.d
+policy=$(cat /usr/lib/foundry/encryption-policy 2>/dev/null || echo require-tpm)
+if grep -qs '^Encrypt=tpm2' "$defs"/*.conf && [[ ! -e /dev/tpmrm0 && ! -e /dev/tpm0 ]]; then
+  if [[ $policy == allow-unencrypted ]]; then
+    log "no TPM found; policy allows an unencrypted root"
+    defs=/usr/lib/foundry/repart-plain.d
+  else
+    log "no TPM found and this OS requires disk encryption; refusing to provision"
+    echo "This device has no TPM 2.0 chip, which this OS requires for disk encryption." > /dev/console || true
+    sleep 30
+    exit 1
+  fi
+fi
+log "boot disk $disk (esp $part), definitions $defs"
+exec /usr/bin/systemd-repart --dry-run=no --definitions="$defs" --copy-source=/sysusr "$disk"

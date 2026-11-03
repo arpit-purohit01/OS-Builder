@@ -1,0 +1,5 @@
+Phase 0 acceptance
+  PASS ab-fallback              615s  tcg
+         · FOUNDRY-UPDATED   VERSION INSTALLED AVAILABLE ASSESSMENT ● 1.0.1       ✓         ✓     current ○ 1.0.0       ✓               protected
+         · FOUNDRY-REBOOTING
+         · update 1.0.1 installed; 3 trial boots of it failed the health check; fell back to 1.0.0 (entry ci-server_1.0.0.efi)

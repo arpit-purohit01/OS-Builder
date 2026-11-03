@@ -1,0 +1,8 @@
+NAME="Nova Desk"
+PRETTY_NAME="Nova Desk 2.0.0"
+ID=nova-desk
+ID_LIKE="ubuntu debian"
+VERSION="2.0.0"
+VERSION_ID=2.0.0
+FOUNDRY_BASE="ubuntu-26.04"
+FOUNDRY_SPEC_DIGEST="sha256:72d3f5b704554c4fa1c3291cb98f2b1059e60d956ef464ff620c5175d3fc1c2a"

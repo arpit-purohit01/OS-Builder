@@ -1,0 +1,10 @@
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata: {name: forge-dev, displayName: Forge Developer, version: 0.3.0}
+foundation: {base: debian-13, profile: desktop-kde, snapshot: "2026-10-20T00:00:00Z"}
+look: {theme: {mode: dark, accent: "#0F766E", iconTheme: papirus, font: noto}, layout: {preset: dock-left}, wallpaper: {catalog: forest}}
+apps: {preinstalled: ["flatpak:org.mozilla.firefox"], system: [vpn.wireguard, app.openssh-client]}
+security: {level: relaxed, diskEncryption: none, secureBoot: shim-mok, firewall: {allow: [ssh, mdns]}}
+access: {rootModel: developer}
+kernel: {flavor: realtime}
+ecosystem: {handoff: {enabled: true}}

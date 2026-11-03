@@ -1,0 +1,24 @@
+# Development observability stack (Phase 0, P0-12). Services expose
+# Prometheus metrics on /metrics (api :8080); logs are JSON on stderr.
+#   docker compose -f deploy/dev/compose.yml up -d
+services:
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_HOST_AUTH_METHOD: trust, POSTGRES_DB: foundry }
+    ports: ["5432:5432"]
+    volumes: [pg:/var/lib/postgresql/data]
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  loki:
+    image: grafana/loki:3.1.1
+    ports: ["3100:3100"]
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment: { GF_AUTH_ANONYMOUS_ENABLED: "true", GF_AUTH_ANONYMOUS_ORG_ROLE: Admin }
+    volumes: ["./grafana/provisioning:/etc/grafana/provisioning:ro"]
+    ports: ["3000:3000"]
+volumes:
+  pg: {}

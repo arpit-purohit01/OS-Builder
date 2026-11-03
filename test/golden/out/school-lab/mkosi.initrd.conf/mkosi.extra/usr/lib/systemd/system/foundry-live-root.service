@@ -1,0 +1,13 @@
+[Unit]
+Description=Foundry live root
+DefaultDependencies=no
+ConditionKernelCommandLine=foundry.installer=1
+After=sysroot.mount sysroot-usr.mount sysusr-usr.mount
+Requires=sysroot.mount
+Before=initrd-parse-etc.service initrd-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/foundry/live-root
+StandardOutput=journal+console

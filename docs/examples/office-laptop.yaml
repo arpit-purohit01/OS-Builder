@@ -1,0 +1,46 @@
+# Branded office laptop OS with SSO, app store and managed updates; can dual boot.
+apiVersion: foundry.dev/v1alpha1
+kind: OSSpec
+metadata:
+  name: aurora-office
+  displayName: Aurora OS
+  version: 1.4.0
+foundation:
+  base: ubuntu-24.04
+  arch: [x86_64]
+  profile: desktop-kde
+look:
+  theme: { mode: auto, accent: "#4F46E5", radius: medium, font: inter, iconTheme: breeze }
+  layout: { preset: dock-bottom }
+apps:
+  preinstalled:
+    - flatpak:org.mozilla.firefox
+    - flatpak:org.libreoffice.LibreOffice
+    - flatpak:org.videolan.VLC
+  system: [printing.cups, vpn.wireguard]
+security:
+  level: balanced
+  diskEncryption: tpm2+pin
+  secureBoot: tenant-keys
+  firewall: { default: deny-inbound, allow: [mdns, kdeconnect] }
+  usbStorage: allow
+  autoUpdates: true
+access:
+  rootModel: admin-password
+  users: { mode: firstboot }
+kernel: { flavor: standard }
+memory: { profile: auto }
+ecosystem:
+  identity: { provider: oidc, issuer: "https://login.example.com", clientId: "aurora-desktop" }
+  appStore: { enabled: true }
+  sync: { provider: hosted }
+  handoff: { enabled: true }
+  fleet: { enroll: true, group: front-office }
+branding:
+  osName: Aurora OS
+  osId: aurora
+  homeUrl: "https://aurora.example.com"
+  supportUrl: "https://aurora.example.com/help"
+localization: { locale: en_US.UTF-8, keymap: us, timezone: Asia/Kolkata }
+hardware:
+  targets: [lenovo-thinkpad-t14-gen4, generic-uefi-x86_64]

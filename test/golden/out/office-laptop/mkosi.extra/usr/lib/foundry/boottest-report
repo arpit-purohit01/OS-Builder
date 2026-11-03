@@ -1,0 +1,98 @@
+#!/bin/bash
+# Boot-test report for the platform test harness. Started only when the VM
+# was given the foundry.boottest credential (SMBIOS type 11); prints
+# key=value lines on the first serial port, which the tester parses.
+# Modes (credential value):
+#   report  print one report
+#   reboot  report, reboot once, report again (persistence + TPM re-unlock)
+#   abtest  install the update found on the disk labelled FOUNDRYUPD with
+#           systemd-sysupdate and reboot; trial boots fail (health check),
+#           so the device must fall back to the original version.
+set -uo pipefail
+mode=$(cat /run/credentials/@system/foundry.boottest 2>/dev/null)
+out=/dev/ttyS0
+[[ -w $out ]] || out=/dev/console
+say() { echo "$*" > "$out"; }
+# efivarfs files are not seekable: always read them through a pipe.
+efivar() { cat "/sys/firmware/efi/efivars/$1-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f" 2>/dev/null | tail -c +5 | tr -d '\0'; }
+entry=$(efivar LoaderEntrySelected)
+systemctl is-system-running --wait >/dev/null 2>&1
+# shellcheck source=/dev/null
+. /usr/lib/os-release
+version=${IMAGE_VERSION:-${VERSION_ID:-}}
+if [[ $mode == abtest && $entry == *+* ]] && ! systemctl is-active --quiet foundry-health.service; then
+  say "FOUNDRY-TRIAL-FAILED version=${version} entry=${entry}"
+  exit 0
+fi
+usrdev=$(findmnt -n -o SOURCE /usr)
+slot=$(veritysetup status usr 2>/dev/null | awk '/data device/{print $3}')
+slotlabel=""
+[[ -n $slot ]] && slotlabel=$(lsblk -dno PARTLABEL "$slot" 2>/dev/null)
+rootsrc=$(findmnt -n -o SOURCE /)
+roottype=$(lsblk -no TYPE "$rootsrc" 2>/dev/null | head -1)
+crypt=no; [[ $roottype == crypt ]] && crypt=yes
+tpmtok=no; unseal=n/a
+if [[ $crypt == yes ]]; then
+  dev=$(cryptsetup status "$(basename "$rootsrc")" 2>/dev/null | awk '/device:/{print $2}')
+  if cryptsetup luksDump "$dev" 2>/dev/null | grep -q systemd-tpm2; then
+    tpmtok=yes
+    # The PCR policy is signed for the initrd phase only: unsealing from the
+    # running system must be refused.
+    # --test-passphrase checks the key without creating a mapping.
+    if ! compgen -G "/usr/lib/*/cryptsetup/libcryptsetup-token-systemd-tpm2.so" >/dev/null; then
+      unseal=unavailable
+    elif timeout 120 cryptsetup open --test-passphrase --token-only --token-type systemd-tpm2 "$dev" >/dev/null 2>&1; then
+      unseal=allowed
+    else
+      unseal=refused
+    fi
+  fi
+fi
+sb=$(cat /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c 2>/dev/null | od -An -t u1 -j4 -N1 | tr -d ' ')
+health=$(systemctl is-active foundry-health.service 2>/dev/null)
+bootok=$(systemctl is-active boot-complete.target 2>/dev/null)
+state=$(systemctl is-system-running 2>/dev/null)
+failed=$(systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | paste -sd, -)
+verity=$(veritysetup status usr 2>/dev/null | awk '/status:/{print $2}' | head -1)
+pcr11=$(systemd-analyze pcrs 11 2>/dev/null | awk '$1=="11"{print $3}')
+say "FOUNDRY-TEST version=${version} id=${ID} image=${IMAGE_ID:-} usr=${usrdev} verity=${verity:-none} slot=${slotlabel} root=${rootsrc} crypt=${crypt} tpm2=${tpmtok} unseal=${unseal} sb=${sb:-unknown} health=${health} bootcomplete=${bootok} state=${state} entry=${entry} pcr11=${pcr11:-none} failed=${failed}"
+say "FOUNDRY-TEST cmdline=$(tr -d '\n' < /proc/cmdline)"
+marker=/var/lib/foundry/boottest-rebooted
+case $mode in
+reboot*)
+  if [[ ! -e $marker ]]; then
+    mkdir -p /var/lib/foundry && date -u +%s > "$marker" && sync
+    say "FOUNDRY-REBOOTING"
+    systemctl reboot
+    exit 0
+  fi
+  ;;
+abtest)
+  if [[ ! -e $marker ]]; then
+    defs=/run/foundry-boottest/sysupdate.d
+    src=/run/foundry-boottest/update
+    mkdir -p "$defs" "$src"
+    if ! mount -o ro /dev/disk/by-label/FOUNDRYUPD "$src"; then
+      say "FOUNDRY-UPDATE-FAILED reason=no-update-disk"
+      exit 0
+    fi
+    sysupdate=$(command -v systemd-sysupdate || echo /usr/lib/systemd/systemd-sysupdate)
+    for f in /usr/lib/sysupdate.d/*.transfer; do
+      # systemd 255 reads only *.conf from --definitions= directories
+      sed "s#^Path=/var/lib/foundry/staging#Path=$src#" "$f" > "$defs/$(basename "$f" .transfer).conf"
+    done
+    if "$sysupdate" --definitions="$defs" update > /run/foundry-boottest/sysupdate.log 2>&1; then
+      mkdir -p /var/lib/foundry && date -u +%s > "$marker" && sync
+      say "FOUNDRY-UPDATED $("$sysupdate" --definitions="$defs" list 2>/dev/null | tr '\n' ' ')"
+      say "FOUNDRY-REBOOTING"
+      umount "$src"
+      systemctl reboot
+      exit 0
+    fi
+    say "FOUNDRY-UPDATE-FAILED $(tail -n 5 /run/foundry-boottest/sysupdate.log | tr '\n' ' ')"
+    exit 0
+  fi
+  ;;
+esac
+[[ -e $marker ]] && say "FOUNDRY-TEST rebooted=yes"
+say "FOUNDRY-BOOT-OK"

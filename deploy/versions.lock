@@ -1,0 +1,13 @@
+# Pinned tool versions (Phase 0, P0-02). Bump in a dedicated PR; rebuild the
+# golden outputs and rerun `make phase0` before merging.
+go            1.24.7          # GOTOOLCHAIN=local, modules vendored
+mkosi         27.1            # git ecf7f5702bb2052b7a69cab3fe7d37bc3b9ad77b (2026-09-28)
+tools-tree    ubuntu 26.04.1  # "resolute", systemd 259; built by scripts/make-tools-tree.sh
+image-base    ubuntu 24.04    # "noble", systemd 255.4-1ubuntu8.18, linux 6.8.0
+qemu          8.2.2           # Debian 1:8.2.2+ds-0ubuntu1.18
+ovmf          2024.02-2ubuntu0.10
+swtpm         0.7.3
+systemd-boot-efi 255.4-1ubuntu8.18  # trusted stub + bootloader used by the signer
+sbsigntool    0.9.4-3.1ubuntu7
+efitools      1.9.2-3ubuntu3
+postgresql    16.15

@@ -1,0 +1,8 @@
+NAME="Lobby Kiosk"
+PRETTY_NAME="Lobby Kiosk 1.0.0"
+ID=lobby-kiosk
+ID_LIKE="ubuntu debian"
+VERSION="1.0.0"
+VERSION_ID=1.0.0
+FOUNDRY_BASE="ubuntu-24.04"
+FOUNDRY_SPEC_DIGEST="sha256:d9870d4a49c0b8219fa0555c92652e6fa7b1bb674d825a1bbcc3210afda634f0"

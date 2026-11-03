@@ -1,0 +1,279 @@
+{
+  "at": "2026-10-28T12:56:06.44710235Z",
+  "passed": true,
+  "reports": [
+    {
+      "scenario": {
+        "name": "uefi-tpm-reboot",
+        "secureBoot": false,
+        "tpm": true,
+        "reboot": true,
+        "version": "1.0.0",
+        "slot": "ci-server_1.0.0",
+        "crypt": "yes",
+        "tpm2": "yes"
+      },
+      "passed": true,
+      "boots": [
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "2ef01e15a60d1a23f113900b0d6db2a4b003a7a6874016375ccfcd1e66c3223f",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "allowed",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 112.000567833
+        },
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "2ef01e15a60d1a23f113900b0d6db2a4b003a7a6874016375ccfcd1e66c3223f",
+            "rebooted": "yes",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "allowed",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 125.999533068
+        }
+      ],
+      "events": [
+        "FOUNDRY-REBOOTING"
+      ],
+      "seconds": 238.135598402,
+      "accel": "tcg"
+    },
+    {
+      "scenario": {
+        "name": "sb-tpm-reboot",
+        "secureBoot": true,
+        "tpm": true,
+        "reboot": true,
+        "version": "1.0.0",
+        "slot": "ci-server_1.0.0",
+        "crypt": "yes",
+        "tpm2": "yes",
+        "sbEnforced": true,
+        "initrdOnlyUnseal": true,
+        "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599"
+      },
+      "passed": true,
+      "boots": [
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "root": "/dev/mapper/root",
+            "sb": "1",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 124.000219702
+        },
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "rebooted": "yes",
+            "root": "/dev/mapper/root",
+            "sb": "1",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 110.000228111
+        }
+      ],
+      "events": [
+        "FOUNDRY-REBOOTING"
+      ],
+      "seconds": 234.122365994,
+      "accel": "tcg"
+    },
+    {
+      "scenario": {
+        "name": "sb-unsigned-uki",
+        "secureBoot": false,
+        "tpm": false,
+        "reboot": false
+      },
+      "passed": true,
+      "boots": null,
+      "events": [
+        "refused: Error loading \\EFI\\Linux\\ci-server_1.0.0.efi: Access denied"
+      ],
+      "seconds": 15.786454401,
+      "accel": "tcg"
+    },
+    {
+      "scenario": {
+        "name": "verity-corruption",
+        "secureBoot": false,
+        "tpm": false,
+        "reboot": false
+      },
+      "passed": true,
+      "boots": null,
+      "events": [
+        "flipped byte at usr+1024 (disk offset 1074791424)",
+        "kernel: [   21.699202] device-mapper: verity: 253:2: data block 0 is corrupted"
+      ],
+      "seconds": 47.379172697,
+      "accel": "tcg"
+    },
+    {
+      "scenario": {
+        "name": "tpm-foreign-pcr-key",
+        "secureBoot": false,
+        "tpm": false,
+        "reboot": false
+      },
+      "passed": true,
+      "boots": [
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 114.000373097
+        }
+      ],
+      "events": [
+        "unchanged boot: root unlocked by TPM2; unseal from running system refused",
+        "unlock refused: [FAILED] Failed to start systemd-cryptsetup…vice - Cryptography Setup for root."
+      ],
+      "seconds": 159.527646328,
+      "accel": "tcg"
+    },
+    {
+      "scenario": {
+        "name": "ab-fallback",
+        "secureBoot": false,
+        "tpm": false,
+        "reboot": false
+      },
+      "passed": true,
+      "boots": [
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 208.001874408
+        },
+        {
+          "fields": {
+            "bootcomplete": "inactive",
+            "crypt": "yes",
+            "entry": "ci-server_1.0.0.efi",
+            "failed": "",
+            "health": "inactive",
+            "id": "ci-server",
+            "image": "ci-server",
+            "pcr11": "b8e6afdb143f6eac2f252630e92e2e900a2dcad85997366828c2b8a61ed00599",
+            "rebooted": "yes",
+            "root": "/dev/mapper/root",
+            "sb": "unknown",
+            "slot": "ci-server_1.0.0",
+            "state": "running",
+            "tpm2": "yes",
+            "unseal": "refused",
+            "usr": "/dev/mapper/usr",
+            "verity": "verified",
+            "version": "1.0.0"
+          },
+          "cmdline": "usrhash=4c758a765c5c364d89433b79e531f8bf6d22dacb8112310674c44b222853ad84 systemd.firstboot=no lockdown=integrity init_on_alloc=1 slab_nomerge page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none debugfs=off module.sig_enforce=1 console=ttyS0,115200",
+          "seconds": 439.998541987
+        }
+      ],
+      "events": [
+        "FOUNDRY-UPDATED   VERSION INSTALLED AVAILABLE ASSESSMENT ● 1.0.1       ✓         ✓     current ○ 1.0.0       ✓               protected",
+        "FOUNDRY-REBOOTING",
+        "update installed, 0 failing trial boot(s) reported, final entry ci-server_1.0.0.efi"
+      ],
+      "seconds": 654.565832568,
+      "accel": "tcg"
+    }
+  ]
+}

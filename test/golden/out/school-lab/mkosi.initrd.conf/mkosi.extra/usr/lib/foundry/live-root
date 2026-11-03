@@ -1,0 +1,13 @@
+#!/bin/bash
+# Foundry live/installer boot (kernel command line foundry.installer=1, root=tmpfs):
+# fill the RAM root with the image's first-boot skeleton. The boot medium is
+# never written; /usr stays the verified, read-only image.
+set -euo pipefail
+src=/sysusr/usr/share/foundry/rootfs
+[[ -d $src ]] || src=/sysroot/usr/share/foundry/rootfs
+for e in "$src"/* "$src"/.[!.]*; do
+  [[ -e $e || -L $e ]] || continue
+  [[ $(basename "$e") == usr ]] && continue
+  cp -a "$e" /sysroot/
+done
+echo "foundry: live root ready"

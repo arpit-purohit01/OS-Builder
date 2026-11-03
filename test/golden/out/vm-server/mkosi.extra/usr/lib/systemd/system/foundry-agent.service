@@ -1,0 +1,28 @@
+[Unit]
+Description=Foundry device agent
+Documentation=https://docs.foundry.dev/agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/lib/foundry/foundry-agent run
+Restart=always
+RestartSec=10
+WatchdogSec=120
+StateDirectory=foundry-agent
+Environment=GOMEMLIMIT=40MiB GOGC=50
+MemoryMax=64M
+CPUQuota=20%
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+ReadWritePaths=/var/lib/foundry /boot /efi /run
+
+[Install]
+WantedBy=multi-user.target

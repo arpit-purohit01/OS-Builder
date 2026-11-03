@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=File sync
+Exec=nextcloud --background
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

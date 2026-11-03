@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": true,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "front-office",
+  "labelPrefix": "aurora",
+  "osId": "aurora",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

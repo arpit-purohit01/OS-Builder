@@ -1,0 +1,7 @@
+{
+  "allowedDomains": [
+    "kiosk.example.com"
+  ],
+  "idleResetMinutes": 5,
+  "url": "https://kiosk.example.com/welcome"
+}

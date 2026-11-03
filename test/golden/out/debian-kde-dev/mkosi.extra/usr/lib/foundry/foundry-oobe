@@ -1,0 +1,142 @@
+#!/usr/bin/python3
+"""Foundry first-boot setup (OOBE): create the first user account.
+
+Runs once inside cage before the display manager starts. Serves a small
+local web form on 127.0.0.1 and shows it in a WebKit window. Values never
+pass through a shell: useradd/chpasswd get argv lists and stdin.
+"""
+import html
+import http.server
+import json
+import os
+import re
+import subprocess
+import sys
+import threading
+from urllib.parse import parse_qs
+
+DONE = "/var/lib/foundry/oobe-done"
+VALUES = "/usr/lib/foundry/values.json"
+NAME_RE = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+RESERVED = {"root", "daemon", "bin", "sys", "sync", "games", "man", "lp", "mail", "news", "uucp", "proxy",
+            "www-data", "backup", "list", "irc", "nobody", "foundry-agent", "foundry-kiosk", "admin", "sudo"}
+
+
+def load_values():
+    try:
+        with open(VALUES, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def validate(form):
+    full = form.get("fullname", "").strip()
+    user = form.get("username", "").strip()
+    pw, pw2 = form.get("password", ""), form.get("password2", "")
+    errs = []
+    if not full or len(full) > 100 or any(c in full for c in ":,\n\r"):
+        errs.append("Enter your full name (no commas or colons).")
+    if not NAME_RE.match(user) or user in RESERVED:
+        errs.append("User name: lowercase letters, digits, - or _, starting with a letter.")
+    if len(pw) < 8:
+        errs.append("Password must be at least 8 characters.")
+    if pw != pw2:
+        errs.append("Passwords do not match.")
+    return full, user, pw, errs
+
+
+def create_user(full, user, pw, admin):
+    args = ["useradd", "--create-home", "--shell", "/bin/bash", "--comment", full]
+    if admin:
+        args += ["--groups", "sudo"]
+    subprocess.run(args + ["--", user], check=True)
+    subprocess.run(["chpasswd"], input=f"{user}:{pw}\n".encode(), check=True)
+
+
+PAGE = """<!doctype html><html><head><meta charset="utf-8"><title>Welcome</title>
+<style>body{{font-family:sans-serif;background:#F6F7F9;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}}
+form{{background:#fff;padding:40px;border-radius:16px;width:420px;box-shadow:0 8px 24px rgba(0,0,0,.08)}}
+h1{{margin:0 0 8px}}label{{display:block;margin-top:14px;font-weight:600}}input{{width:100%;box-sizing:border-box;height:44px;font-size:16px;padding:0 12px;border:1px solid #C9CED8;border-radius:10px}}
+button{{margin-top:22px;width:100%;height:48px;border:0;border-radius:10px;background:#4F46E5;color:#fff;font-size:16px;font-weight:600}}
+.err{{color:#B91C1C}}</style></head><body><form method="post" action="/create">
+<h1>Welcome to {osname}</h1><p>Create your account to get started.</p>{errors}
+<label for="f">Full name</label><input id="f" name="fullname" value="{fullname}" autofocus>
+<label for="u">User name</label><input id="u" name="username" value="{username}">
+<label for="p">Password</label><input id="p" type="password" name="password">
+<label for="p2">Confirm password</label><input id="p2" type="password" name="password2">
+<button type="submit">Create account</button></form></body></html>"""
+
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    values = {}
+    on_done = None
+
+    def log_message(self, *a):
+        pass
+
+    def page(self, errors=(), fullname="", username=""):
+        body = PAGE.format(
+            osname=html.escape(self.values.get("osName", "your new computer")),
+            errors="".join(f'<p class="err">{html.escape(e)}</p>' for e in errors),
+            fullname=html.escape(fullname), username=html.escape(username)).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        self.page()
+
+    def do_POST(self):
+        n = min(int(self.headers.get("Content-Length", "0")), 16384)
+        form = {k: v[0] for k, v in parse_qs(self.rfile.read(n).decode("utf-8", "replace")).items()}
+        full, user, pw, errs = validate(form)
+        if errs:
+            return self.page(errs, full, user)
+        admin = self.values.get("rootModel", "admin-password") != "locked"
+        try:
+            create_user(full, user, pw, admin)
+        except subprocess.CalledProcessError:
+            return self.page(["Could not create that account. Try another user name."], full, user)
+        os.makedirs(os.path.dirname(DONE), exist_ok=True)
+        open(DONE, "w").close()
+        body = b"<!doctype html><p style='font:20px sans-serif;text-align:center;margin-top:40vh'>All set. Starting...</p>"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.end_headers()
+        self.wfile.write(body)
+        threading.Timer(1.5, Handler.on_done).start()
+
+
+def main():
+    if "--self-test" in sys.argv:
+        _, _, _, e = validate({"fullname": "Ada Lovelace", "username": "ada", "password": "correct horse", "password2": "correct horse"})
+        assert not e, e
+        _, _, _, e = validate({"fullname": "x:y", "username": "Root", "password": "short", "password2": "other"})
+        assert len(e) == 4, e
+        print("ok")
+        return 0
+    Handler.values = load_values()
+    srv = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("WebKit2", "4.1")
+    from gi.repository import GLib, Gtk, WebKit2
+    Handler.on_done = lambda: GLib.idle_add(Gtk.main_quit)
+    win = Gtk.Window()
+    view = WebKit2.WebView()
+    view.connect("context-menu", lambda *a: True)
+    win.add(view)
+    win.fullscreen()
+    win.show_all()
+    view.load_uri(f"http://127.0.0.1:{port}/")
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

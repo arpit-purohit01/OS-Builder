@@ -1,0 +1,8 @@
+{
+  "refs": [
+    "org.libreoffice.LibreOffice",
+    "org.mozilla.firefox",
+    "org.videolan.VLC"
+  ],
+  "remote": "foundry"
+}

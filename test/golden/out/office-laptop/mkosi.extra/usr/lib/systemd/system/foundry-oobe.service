@@ -1,0 +1,19 @@
+[Unit]
+Description=Foundry first-boot setup
+ConditionPathExists=!/var/lib/foundry/oobe-done
+Before=display-manager.service
+After=systemd-user-sessions.service plymouth-quit-wait.service systemd-logind.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=oneshot
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty-fail
+TimeoutStartSec=infinity
+ExecStart=/usr/bin/cage -s -- /usr/lib/foundry/foundry-oobe
+
+[Install]
+WantedBy=graphical.target

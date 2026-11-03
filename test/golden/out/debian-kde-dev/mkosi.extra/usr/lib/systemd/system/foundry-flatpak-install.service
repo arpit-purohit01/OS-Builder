@@ -1,0 +1,15 @@
+[Unit]
+Description=Install preinstalled apps
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/foundry/flatpak-install
+Restart=on-failure
+RestartSec=5min
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

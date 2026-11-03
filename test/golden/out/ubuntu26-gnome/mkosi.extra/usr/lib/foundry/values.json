@@ -1,0 +1,16 @@
+{
+  "identity": {
+    "clientId": "",
+    "domain": "corp.example.com",
+    "issuer": "",
+    "provider": "ad"
+  },
+  "memoryProfile": "desktop",
+  "osName": "Nova Desk",
+  "security": {
+    "diskEncryption": "tpm2+pin",
+    "level": "hardened",
+    "secureBoot": "tenant-keys"
+  },
+  "users": []
+}

@@ -1,0 +1,18 @@
+options:
+  - {id: font.inter, kind: font, label: Inter, packages: {default: [fonts-inter]}, ui: {levels: [custom, expert]}}
+  - {id: font.cantarell, kind: font, label: Cantarell, packages: {default: [fonts-cantarell]}, ui: {levels: [custom, expert]}}
+  - {id: font.noto, kind: font, label: Noto Sans, packages: {default: [fonts-noto-core]}, ui: {levels: [custom, expert]}}
+  - {id: font.dejavu, kind: font, label: DejaVu Sans, packages: {default: [fonts-dejavu-core]}, ui: {levels: [custom, expert]}}
+  - {id: icons.adwaita, kind: icons, label: Adwaita, packages: {default: [adwaita-icon-theme]}, ui: {levels: [custom, expert]}}
+  - {id: icons.breeze, kind: icons, label: Breeze, packages: {default: [breeze-icon-theme]}, ui: {levels: [custom, expert]}}
+  - {id: icons.papirus, kind: icons, label: Papirus, packages: {default: [papirus-icon-theme]}, ui: {levels: [custom, expert]}}
+  - {id: layout.dock-bottom, kind: layout, label: Dock at bottom, oneOf: layout, requires: [session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: layout.dock-left, kind: layout, label: Dock on the left, oneOf: layout, requires: [session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: layout.taskbar-bottom, kind: layout, label: Taskbar at bottom, oneOf: layout, requires: [session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: layout.minimal, kind: layout, label: Minimal, oneOf: layout, requires: [session.desktop], ui: {levels: [simple, custom, expert]}}
+  - {id: layout.none, kind: layout, label: None, oneOf: layout, ui: {levels: [expert]}}
+  - {id: layout.custom, kind: layout, label: Custom layout, oneOf: layout, requires: [session.desktop], ui: {levels: [custom, expert]}}
+  - {id: wallpaper.aurora, kind: wallpaper, label: Aurora, ui: {levels: [simple, custom, expert]}}
+  - {id: wallpaper.dusk, kind: wallpaper, label: Dusk, ui: {levels: [simple, custom, expert]}}
+  - {id: wallpaper.forest, kind: wallpaper, label: Forest, ui: {levels: [simple, custom, expert]}}
+  - {id: wallpaper.graphite, kind: wallpaper, label: Graphite, ui: {levels: [simple, custom, expert]}}

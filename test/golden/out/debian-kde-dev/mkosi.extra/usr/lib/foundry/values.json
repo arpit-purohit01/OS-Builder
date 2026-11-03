@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "clientId": "",
+    "domain": "",
+    "issuer": "",
+    "provider": "local"
+  },
+  "memoryProfile": "desktop",
+  "osName": "Forge Developer",
+  "rootModel": "developer",
+  "security": {
+    "diskEncryption": "none",
+    "level": "relaxed",
+    "secureBoot": "shim-mok"
+  },
+  "users": []
+}

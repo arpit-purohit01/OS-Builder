@@ -1,0 +1,17 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/foundry/staging
+MatchPattern=nova-desk_@v.efi
+
+[Target]
+Type=regular-file
+Path=/EFI/Linux
+PathRelativeTo=boot
+MatchPattern=nova-desk_@v+@l-@d.efi nova-desk_@v+@l.efi nova-desk_@v.efi
+Mode=0444
+TriesLeft=3
+TriesDone=0
+InstancesMax=2

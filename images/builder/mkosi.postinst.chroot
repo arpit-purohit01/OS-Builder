@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+for f in /boot/vmlinuz-*; do
+  [ -L "$f" ] && continue
+  k=${f#/boot/vmlinuz-}
+  [ -d "/usr/lib/modules/$k" ] && cp "$f" "/usr/lib/modules/$k/vmlinuz"
+done
+ln -sf /opt/mkosi/bin/mkosi /usr/local/bin/mkosi

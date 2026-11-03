@@ -1,0 +1,11 @@
+/third_party/
+/out/
+/var/
+/bin/
+/web/node_modules/
+/web/dist/
+*.raw
+*.qcow2
+*.fd
+/.cache/
+/images/builder/mkosi.extra/usr/bin/

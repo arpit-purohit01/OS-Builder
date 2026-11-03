@@ -1,0 +1,10 @@
+{
+  "autoUpdates": true,
+  "enroll": false,
+  "fleetUrl": "https://fleet.foundry.test",
+  "group": "",
+  "labelPrefix": "forge-dev",
+  "osId": "forge-dev",
+  "tenant": "acme",
+  "updateUrl": "https://updates.foundry.test"
+}

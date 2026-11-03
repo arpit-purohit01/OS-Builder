@@ -1,0 +1,7 @@
+-w /etc/sudoers -p wa -k foundry-sudoers
+-w /etc/sudoers.d/ -p wa -k foundry-sudoers
+-w /etc/passwd -p wa -k foundry-identity
+-w /etc/shadow -p wa -k foundry-identity
+-w /etc/polkit-1/ -p wa -k foundry-polkit
+-a always,exit -F arch=b64 -S init_module,finit_module -k foundry-modules
+-a always,exit -F arch=b64 -S execve -F perm=x -F euid=0 -F auid>=1000 -F auid!=unset -k foundry-root-exec
