@@ -1,5 +1,5 @@
 {
-  "treeDigest": "sha256:b766bf6fde97e5267fb779bf4e184f3fb832dfc088a0cbd0353fca0c2067eb22",
+  "treeDigest": "sha256:a3795281e3b53112a2c0318a5b16957ed8d8298724aaa6c6b6a8300b1dec223e",
   "packages": [
     "amd64-microcode",
     "avahi-daemon",

@@ -1,0 +1,657 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.foundry.dev/osspec/v1alpha1.json",
+  "title": "Foundry OSSpec v1alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "foundation"
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "catalogId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.+_-]{1,99}$"
+    },
+    "appRef": {
+      "type": "string",
+      "pattern": "^(flatpak:[A-Za-z0-9._-]{3,200}|catalog:[a-z0-9][a-z0-9.+_-]{1,99})$"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048
+    }
+  },
+  "properties": {
+    "apiVersion": {
+      "const": "foundry.dev/v1alpha1"
+    },
+    "kind": {
+      "const": "OSSpec"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{2,39}$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?$"
+        }
+      }
+    },
+    "foundation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base",
+        "profile"
+      ],
+      "properties": {
+        "base": {
+          "enum": [
+            "ubuntu-24.04",
+            "ubuntu-26.04",
+            "debian-13",
+            "fedora"
+          ],
+          "default": "ubuntu-24.04"
+        },
+        "arch": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "x86_64",
+              "aarch64"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "default": [
+            "x86_64"
+          ]
+        },
+        "snapshot": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "profile": {
+          "enum": [
+            "desktop-kde",
+            "desktop-gnome",
+            "kiosk-cage",
+            "thin-client",
+            "server"
+          ]
+        },
+        "bootMode": {
+          "enum": [
+            "uefi",
+            "uefi+bios-compat"
+          ],
+          "default": "uefi"
+        }
+      }
+    },
+    "look": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "enum": [
+                "light",
+                "dark",
+                "auto"
+              ],
+              "default": "auto"
+            },
+            "accent": {
+              "$ref": "#/$defs/color"
+            },
+            "radius": {
+              "enum": [
+                "none",
+                "small",
+                "medium",
+                "large"
+              ],
+              "default": "medium"
+            },
+            "font": {
+              "$ref": "#/$defs/catalogId"
+            },
+            "iconTheme": {
+              "$ref": "#/$defs/catalogId"
+            }
+          }
+        },
+        "wallpaper": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "asset": {
+              "$ref": "#/$defs/digest"
+            },
+            "catalog": {
+              "$ref": "#/$defs/catalogId"
+            }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "enum": [
+                "dock-bottom",
+                "dock-left",
+                "taskbar-bottom",
+                "minimal",
+                "none"
+              ]
+            },
+            "custom": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "bootSplash": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "logo": {
+              "$ref": "#/$defs/digest"
+            },
+            "background": {
+              "$ref": "#/$defs/color"
+            },
+            "hideMenu": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "loginScreen": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        }
+      }
+    },
+    "apps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preinstalled": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/appRef"
+          },
+          "maxItems": 200,
+          "uniqueItems": true
+        },
+        "system": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/catalogId"
+          },
+          "maxItems": 500,
+          "uniqueItems": true
+        },
+        "custom": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 50,
+          "uniqueItems": true
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "relaxed",
+            "balanced",
+            "hardened"
+          ],
+          "default": "balanced"
+        },
+        "diskEncryption": {
+          "enum": [
+            "none",
+            "tpm2",
+            "tpm2+pin",
+            "passphrase"
+          ],
+          "default": "tpm2"
+        },
+        "secureBoot": {
+          "enum": [
+            "tenant-keys",
+            "shim-mok",
+            "off"
+          ],
+          "default": "tenant-keys"
+        },
+        "firewall": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "default": {
+              "enum": [
+                "deny-inbound",
+                "allow-all"
+              ],
+              "default": "deny-inbound"
+            },
+            "allow": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "mdns",
+                  "ssh",
+                  "kdeconnect",
+                  "printing",
+                  "rdp",
+                  "vnc"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "usbStorage": {
+          "enum": [
+            "allow",
+            "read-only",
+            "block"
+          ],
+          "default": "allow"
+        },
+        "autoUpdates": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rootModel": {
+          "enum": [
+            "locked",
+            "admin-password",
+            "developer"
+          ],
+          "default": "admin-password"
+        },
+        "users": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "enum": [
+                "firstboot",
+                "predefined",
+                "directory",
+                "autologin-kiosk"
+              ],
+              "default": "firstboot"
+            },
+            "predefined": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+                  },
+                  "admin": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "passwordHash": {
+                    "type": "string",
+                    "pattern": "^\\$(y|6|2b)\\$.{20,200}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ttyConsole": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "kernel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "flavor": {
+          "enum": [
+            "standard",
+            "hardened",
+            "realtime",
+            "gaming"
+          ],
+          "default": "standard"
+        },
+        "extraCmdline": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.]+(=[A-Za-z0-9_.,:-]+)?$",
+            "maxLength": 128
+          },
+          "maxItems": 20
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "enum": [
+            "auto",
+            "low-ram",
+            "desktop",
+            "workstation"
+          ],
+          "default": "auto"
+        }
+      }
+    },
+    "ecosystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "enum": [
+                "local",
+                "oidc",
+                "ldap",
+                "ad"
+              ],
+              "default": "local"
+            },
+            "issuer": {
+              "$ref": "#/$defs/url"
+            },
+            "clientId": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "domain": {
+              "type": "string",
+              "maxLength": 253
+            }
+          }
+        },
+        "appStore": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "sync": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "enum": [
+                "none",
+                "hosted",
+                "webdav"
+              ],
+              "default": "none"
+            },
+            "url": {
+              "$ref": "#/$defs/url"
+            }
+          }
+        },
+        "handoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "fleet": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enroll": {
+              "type": "boolean",
+              "default": false
+            },
+            "group": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        },
+        "kiosk": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "$ref": "#/$defs/url"
+            },
+            "idleResetMinutes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1440
+            },
+            "allowedDomains": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 253
+              },
+              "maxItems": 100
+            }
+          }
+        }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "osName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "osId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,39}$"
+        },
+        "homeUrl": {
+          "$ref": "#/$defs/url"
+        },
+        "supportUrl": {
+          "$ref": "#/$defs/url"
+        }
+      }
+    },
+    "localization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(_[A-Z]{2})?\\.UTF-8$"
+        },
+        "keymap": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]{2,32}$"
+        },
+        "timezone": {
+          "type": "string",
+          "pattern": "^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$"
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/catalogId"
+          },
+          "maxItems": 50,
+          "uniqueItems": true
+        },
+        "extraFirmware": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/catalogId"
+          },
+          "maxItems": 50,
+          "uniqueItems": true
+        }
+      }
+    },
+    "expert": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overlays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 20
+        },
+        "postinstScripts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 20
+        },
+        "extraRepos": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "url",
+              "keyFingerprint",
+              "keyAsset",
+              "pin"
+            ],
+            "properties": {
+              "url": {
+                "$ref": "#/$defs/url"
+              },
+              "keyFingerprint": {
+                "type": "string",
+                "pattern": "^[A-F0-9]{40}$"
+              },
+              "pin": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]{1,40}$"
+                }
+              },
+              "keyAsset": {
+                "$ref": "#/$defs/digest",
+                "description": "Uploaded ASCII-armored or binary OpenPGP public key; its fingerprint must equal keyFingerprint."
+              },
+              "suite": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9.-]{0,40}$",
+                "description": "Suite (default: the base release codename)."
+              }
+            }
+          }
+        },
+        "mkosiDropins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 10
+        },
+        "packages": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9+.-]{1,62}$"
+          },
+          "description": "Extra distribution packages (from the base archive or extraRepos). Expert: forces review."
+        }
+      }
+    }
+  }
+}

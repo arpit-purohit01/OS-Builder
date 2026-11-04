@@ -7,4 +7,4 @@ VERSION_ID=1.4.0
 HOME_URL="https://aurora.example.com"
 SUPPORT_URL="https://aurora.example.com/help"
 FOUNDRY_BASE="ubuntu-24.04"
-FOUNDRY_SPEC_DIGEST="sha256:fe9d49badf29ffb3cbfca666c5694873163046cd42a9aa8064aa7a537f98d48e"
+FOUNDRY_SPEC_DIGEST="sha256:94464fb3ac1ba50c5405793df4db605328d69d2b05e4c724d0c3c12bfeaf039d"

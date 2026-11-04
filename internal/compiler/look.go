@@ -143,6 +143,16 @@ func (c *ctx) gnome(wp, font string) {
 	}
 	fmt.Fprintf(&w, "\n[org/gnome/desktop/background]\npicture-uri='file://%s'\npicture-uri-dark='file://%s'\npicture-options='zoom'\n", wp, wp)
 	fmt.Fprintf(&w, "\n[org/gnome/desktop/screensaver]\npicture-uri='file://%s'\n", wp)
+
+	// GDM login screen background
+	if l.LoginScreen != nil && l.LoginScreen.Background != "" {
+		p := "usr/share/backgrounds/foundry/gdm" + c.in.AssetExt[l.LoginScreen.Background]
+		c.t.asset(extra+p, l.LoginScreen.Background)
+		c.t.add(extra+"etc/gdm3/greeter.dconf", 0o644, fmt.Sprintf("[org/gnome/login-screen]\npicture-uri='file:///%s'\n", p))
+		c.t.add(extra+"etc/dconf/profile/gdm", 0o644, "user-db:user\nsystem-db:gdm\n")
+		c.t.add(extra+"etc/dconf/db/gdm.d/01-foundry", 0o644, fmt.Sprintf("[org/gnome/login-screen]\npicture-uri='file:///%s'\n", p))
+		c.post = append(c.post, "# Compile GDM dconf defaults\ndconf update\n")
+	}
 	preset := l.Layout.Preset
 	var exts []string
 	dock := map[string]string{"dock-bottom": "BOTTOM", "dock-left": "LEFT", "taskbar-bottom": "BOTTOM"}[preset]
@@ -275,6 +285,20 @@ func (c *ctx) plymouth() {
 update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/foundry/foundry.plymouth 200
 update-alternatives --set default.plymouth /usr/share/plymouth/themes/foundry/foundry.plymouth
 `)
+}
+
+// systemdBoot configures systemd-boot menu hidden by default (silent boot).
+func (c *ctx) systemdBoot() {
+	bs := c.s.Look.BootSplash
+	if bs.HideMenu == nil || *bs.HideMenu {
+		// Create loader.conf with menu hidden by default
+		loaderConf := `timeout 0
+editor no
+menu hide
+default @saved
+`
+		c.t.add(extra+"boot/loader/loader.conf", 0o644, loaderConf)
+	}
 }
 
 // customLayout returns the validated custom layout, if the spec uses one.

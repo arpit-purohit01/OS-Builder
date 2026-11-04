@@ -19,6 +19,7 @@ ToolsTreeRelease=resolute
 ToolsTreeMirror=http://archive.ubuntu.com/ubuntu
 CONF
 (cd "$work" && env -u https_proxy -u HTTPS_PROXY mkosi -f build)
+mkdir -p "$(dirname "$dest")"
 rm -rf "$dest"
 cp -a "$work/mkosi.tools" "$dest"
 echo "tools tree at $dest"

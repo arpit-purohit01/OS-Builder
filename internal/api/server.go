@@ -146,6 +146,13 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.route(mux, "GET /v1/catalog/{version}/cnf", s.getCNF)
 	s.route(mux, "GET /v1/schema/osspec", s.getSchema)
 
+	// catalog versions (Phase 2)
+	s.route(mux, "GET /v1/orgs/{org}/catalog/versions", s.org("viewer", "specs:read", s.getCatalogVersions))
+	s.route(mux, "GET /v1/orgs/{org}/catalog/versions/{version}", s.org("viewer", "specs:read", s.getCatalogVersion))
+	s.route(mux, "POST /v1/orgs/{org}/catalog/versions", s.org("builder", "specs:write", s.createCatalogVersion))
+	s.route(mux, "POST /v1/orgs/{org}/catalog/versions/{version}/default", s.org("admin", "admin", s.setDefaultCatalogVersion))
+	s.route(mux, "GET /v1/orgs/{org}/catalog/versions/{version}/cnf", s.org("viewer", "specs:read", s.getCNFForVersion))
+
 	// projects & specs
 	s.route(mux, "GET /v1/orgs/{org}/projects", s.org("viewer", "specs:read", s.listProjects))
 	s.route(mux, "POST /v1/orgs/{org}/projects", s.org("builder", "specs:write", s.createProject))

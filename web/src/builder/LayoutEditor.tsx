@@ -1,4 +1,21 @@
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { upload } from "../lib/api";
 import { get } from "../lib/pointer";
 import type { Ctx } from "./fields";
@@ -18,6 +35,36 @@ const PRESETS: Record<string, LayoutDoc> = {
   "taskbar-bottom": { version: 1, panels: [{ edge: "bottom", style: "bar", size: 40, items: ["launcher", "tasks", "spacer", "tray", "clock"] }] },
 };
 
+function SortableItem({ id, item, index }: { id: string; item: string; index: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} className="row spread" {...attributes} {...listeners} role="listitem">
+      <span>{ITEMS[item]}</span>
+      <span className="row" style={{ gap: 4 }}>
+        <button className="ghost small" aria-label={`Move ${ITEMS[item]} up`} disabled={index === 0} onClick={() => {/* handled by dnd */}}>↑</button>
+        <button className="ghost small" aria-label={`Move ${ITEMS[item]} down`} disabled={false} onClick={() => {/* handled by dnd */}}>↓</button>
+        <button className="ghost small" aria-label={`Remove ${ITEMS[item]}`} onClick={() => {/* handled by dnd */}}>✕</button>
+      </span>
+    </li>
+  );
+}
+
+const sensors = useSensors(
+  useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  }),
+  useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
+);
+
 export default function LayoutEditor({ ctx, profile }: { ctx: Ctx; profile: string }) {
   const preset = (get(ctx.spec, "/look/layout/preset") as string) ?? "dock-bottom";
   const custom = get(ctx.spec, "/look/layout/custom") as string | undefined;
@@ -25,12 +72,58 @@ export default function LayoutEditor({ ctx, profile }: { ctx: Ctx; profile: stri
   const [doc, setDoc] = useState<LayoutDoc>(() => JSON.parse(JSON.stringify(PRESETS[preset] ?? PRESETS["dock-bottom"])));
   const [state, setState] = useState<string>();
   const [open, setOpen] = useState(!!custom);
+
   const upd = (f: (d: LayoutDoc) => void) => setDoc((d) => {
     const n = JSON.parse(JSON.stringify(d)) as LayoutDoc;
     f(n);
     return n;
   });
-  const used = new Set(doc.panels.map((p) => p.edge));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeParts = String(active.id).split("-");
+    const overParts = String(over.id).split("-");
+
+    // Handle panel reordering
+    if (activeParts[0] === "panel" && overParts[0] === "panel") {
+      const activeIndex = parseInt(activeParts[1], 10);
+      const overIndex = parseInt(overParts[1], 10);
+      upd(d => {
+        const n = JSON.parse(JSON.stringify(d)) as LayoutDoc;
+        const [removed] = n.panels.splice(activeIndex, 1);
+        n.panels.splice(overIndex, 0, removed);
+        return n;
+      });
+    }
+    // Handle item reordering within a panel
+    else if (activeParts[0] === "item" && overParts[0] === "item") {
+      const activePanel = parseInt(activeParts[1], 10);
+      const activeItemIndex = parseInt(activeParts[2], 10);
+      const overPanel = parseInt(overParts[1], 10);
+      const overItemIndex = parseInt(overParts[2], 10);
+
+      if (activePanel === overPanel) {
+        // Reorder within same panel
+        upd(d => {
+          const n = JSON.parse(JSON.stringify(d)) as LayoutDoc;
+          const [removed] = n.panels[activePanel].items.splice(activeItemIndex, 1);
+          n.panels[activePanel].items.splice(overItemIndex, 0, removed);
+          return n;
+        });
+      } else {
+        // Move item between panels
+        upd(d => {
+          const n = JSON.parse(JSON.stringify(d)) as LayoutDoc;
+          const [removed] = n.panels[activePanel].items.splice(activeItemIndex, 1);
+          n.panels[overPanel].items.splice(overItemIndex, 0, removed);
+          return n;
+        });
+      }
+    }
+  };
+
   async function apply() {
     setState("Saving layout…");
     try {
@@ -43,6 +136,7 @@ export default function LayoutEditor({ ctx, profile }: { ctx: Ctx; profile: stri
       setState((e as Error).message);
     }
   }
+
   if (!open) {
     return (
       <div className="row">
@@ -51,6 +145,7 @@ export default function LayoutEditor({ ctx, profile }: { ctx: Ctx; profile: stri
       </div>
     );
   }
+
   return (
     <div className="card stack">
       <div className="row spread">
@@ -60,70 +155,106 @@ export default function LayoutEditor({ ctx, profile }: { ctx: Ctx; profile: stri
           <button className="ghost small" onClick={() => setOpen(false)}>Close</button>
         </div>
       </div>
-      <LayoutCanvas doc={doc} />
-      {profile === "desktop-gnome" && <p className="small muted">GNOME keeps its top bar; the first other panel becomes the dock.</p>}
-      {doc.panels.map((p, i) => (
-        <fieldset key={i} className="card stack" style={{ padding: 12 }}>
-          <legend style={{ fontWeight: 600 }}>Panel {i + 1}</legend>
-          <div className="row">
-            <label className="field" style={{ width: 140 }}>Edge
-              <select value={p.edge} onChange={(e) => upd((d) => void (d.panels[i].edge = e.target.value as Edge))}>
-                {(["bottom", "top", "left", "right"] as Edge[]).filter((x) => x === p.edge || !used.has(x)).map((x) => <option key={x}>{x}</option>)}
-              </select>
-            </label>
-            <label className="field" style={{ width: 160 }}>Style
-              <select value={p.style} onChange={(e) => upd((d) => void (d.panels[i].style = e.target.value as "dock" | "bar"))}>
-                <option value="dock">Dock (centered)</option><option value="bar">Bar (full width)</option>
-              </select>
-            </label>
-            <label className="field" style={{ width: 180 }}>Size {p.size}px
-              <input type="range" min={24} max={96} value={p.size} onChange={(e) => upd((d) => void (d.panels[i].size = Number(e.target.value)))} />
-            </label>
-            <label className="row small"><input type="checkbox" checked={!!p.autohide} onChange={(e) => upd((d) => void (d.panels[i].autohide = e.target.checked))} /> Hide automatically</label>
-            {doc.panels.length > 1 && <button className="danger small" onClick={() => upd((d) => void d.panels.splice(i, 1))}>Remove panel</button>}
-          </div>
-          <ol className="stack" style={{ margin: 0, paddingLeft: 20 }} aria-label={`Items of panel ${i + 1}`}>
-            {p.items.map((it, j) => (
-              <li key={it + j} className="row spread">
-                <span>{ITEMS[it]}</span>
-                <span className="row" style={{ gap: 4 }}>
-                  <button className="ghost small" aria-label={`Move ${ITEMS[it]} up`} disabled={j === 0} onClick={() => upd((d) => { const a = d.panels[i].items; [a[j - 1], a[j]] = [a[j], a[j - 1]]; })}>↑</button>
-                  <button className="ghost small" aria-label={`Move ${ITEMS[it]} down`} disabled={j === p.items.length - 1} onClick={() => upd((d) => { const a = d.panels[i].items; [a[j + 1], a[j]] = [a[j], a[j + 1]]; })}>↓</button>
-                  <button className="ghost small" aria-label={`Remove ${ITEMS[it]}`} disabled={p.items.length === 1} onClick={() => upd((d) => void d.panels[i].items.splice(j, 1))}>✕</button>
-                </span>
-              </li>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <LayoutCanvas doc={doc} />
+        {profile === "desktop-gnome" && <p className="small muted">GNOME keeps its top bar; the first other panel becomes the dock.</p>}
+
+        <SortableContext items={doc.panels.map((_, i) => `panel-${i}`)} strategy={rectSortingStrategy}>
+          <ol className="stack" style={{ margin: 0, paddingLeft: 0 }} role="list">
+            {doc.panels.map((panel, i) => (
+              <SortablePanelPanel key={`panel-${i}`} panel={panel} index={i} doc={doc} upd={upd} />
             ))}
           </ol>
-          <label className="field" style={{ maxWidth: 260 }}>Add item
-            <select value="" onChange={(e) => e.target.value && upd((d) => void d.panels[i].items.push(e.target.value))}>
-              <option value="">Choose…</option>
-              {Object.entries(ITEMS).filter(([k]) => k === "spacer" || !p.items.includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
-          </label>
-        </fieldset>
-      ))}
-      {doc.panels.length < 4 && <div><button onClick={() => upd((d) => void d.panels.push({ edge: (["top", "bottom", "left", "right"] as Edge[]).find((x) => !used.has(x))!, style: "bar", size: 32, items: ["clock"] }))}>Add panel</button></div>}
-      {apps.length > 0 && (
-        <fieldset className="stack" style={{ border: 0, padding: 0 }}>
-          <legend style={{ fontWeight: 600 }}>Favorite apps</legend>
-          <div className="row">
-            {apps.map((a) => (
-              <label key={a} className="row small">
-                <input type="checkbox" checked={(doc.favorites ?? []).includes(a)} onChange={(e) => upd((d) => {
-                  const f = new Set(d.favorites ?? []);
-                  if (e.target.checked) f.add(a); else f.delete(a);
-                  d.favorites = [...f];
-                })} /> {a.replace(/\.desktop$/, "").split(".").pop()}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-      <div className="row">
-        <button className="primary" onClick={() => void apply()}>Use this layout</button>
-        {state && <span className="small" aria-live="polite">{state}</span>}
-      </div>
+        </SortableContext>
+
+        {doc.panels.length < 4 && <div><button onClick={() => upd(d => void d.panels.push({ edge: (["top", "bottom", "left", "right"] as const).find((x) => !new Set(d.panels.map(p => p.edge)).has(x))!, style: "bar", size: 32, items: ["clock"] }))}>Add panel</button></div>}
+
+        {apps.length > 0 && (
+          <fieldset className="stack" style={{ border: 0, padding: 0 }}>
+            <legend style={{ fontWeight: 600 }}>Favorite apps</legend>
+            <div className="row">
+              {apps.map((a) => (
+                <label key={a} className="row small">
+                  <input type="checkbox" checked={(doc.favorites ?? []).includes(a)} onChange={(e) => upd(d => {
+                    const f = new Set(d.favorites ?? []);
+                    if (e.target.checked) f.add(a); else f.delete(a);
+                    d.favorites = [...f];
+                  })} /> {a.replace(/\.desktop$/, "").split(".").pop()}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        <div className="row">
+          <button className="primary" onClick={() => void apply()}>Use this layout</button>
+          {state && <span className="small" aria-live="polite">{state}</span>}
+        </div>
+      </DndContext>
     </div>
+  );
+}
+
+interface SortablePanelPanelProps {
+  panel: Panel;
+  index: number;
+  doc: LayoutDoc;
+  upd: (f: (d: LayoutDoc) => void) => void;
+}
+
+function SortablePanelPanel({ panel, index, doc, upd }: SortablePanelPanelProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `panel-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} className="card stack" {...attributes} {...listeners} role="listitem">
+      <div className="row spread">
+        <legend style={{ fontWeight: 600 }}>Panel {index + 1}</legend>
+        {doc.panels.length > 1 && <button className="danger small" onClick={() => upd(d => void d.panels.splice(index, 1))}>Remove panel</button>}
+      </div>
+      <div className="row">
+        <label className="field" style={{ width: 140 }}>Edge
+          <select value={panel.edge} onChange={(e) => upd(d => void (d.panels[index].edge = e.target.value as "top" | "bottom" | "left" | "right"))}>
+            {(["bottom", "top", "left", "right"] as const).filter((x) => x === panel.edge || !new Set(doc.panels.map(p => p.edge)).has(x)).map((x) => <option key={x}>{x}</option>)}
+          </select>
+        </label>
+        <label className="field" style={{ width: 160 }}>Style
+          <select value={panel.style} onChange={(e) => upd(d => void (d.panels[index].style = e.target.value as "dock" | "bar"))}>
+            <option value="dock">Dock (centered)</option><option value="bar">Bar (full width)</option>
+          </select>
+        </label>
+        <label className="field" style={{ width: 180 }}>Size {panel.size}px
+          <input type="range" min={24} max={96} value={panel.size} onChange={(e) => upd(d => void (d.panels[index].size = Number(e.target.value)))} />
+        </label>
+        <label className="row small"><input type="checkbox" checked={!!panel.autohide} onChange={(e) => upd(d => void (d.panels[index].autohide = e.target.checked))} /> Hide automatically</label>
+      </div>
+
+      <SortableContext items={panel.items.map((_, j) => `item-${index}-${j}`)} strategy={verticalListSortingStrategy}>
+        <ol className="stack" style={{ margin: 0, paddingLeft: 20 }} aria-label={`Items of panel ${index + 1}`} role="list">
+          {panel.items.map((it, j) => (
+            <SortableItem key={`item-${index}-${j}`} id={`item-${index}-${j}`} item={it} index={j} />
+          ))}
+        </ol>
+      </SortableContext>
+
+      <label className="field" style={{ maxWidth: 260 }}>Add item
+        <select value="" onChange={(e) => e.target.value && upd(d => void d.panels[index].items.push(e.target.value))}>
+          <option value="">Choose…</option>
+          {Object.entries(ITEMS).filter(([k]) => k === "spacer" || !panel.items.includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+      </label>
+      {doc.panels.length > 1 && <button className="danger small" onClick={() => upd(d => void d.panels.splice(index, 1))}>Remove panel</button>}
+    </li>
   );
 }
 

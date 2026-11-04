@@ -1,9 +1,10 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { api, ApiError, currentOrg, orgPath, type Build, type Project, type SpecVersion } from "../lib/api";
-import { ago, useAsync } from "../lib/session";
+import { useAsync } from "../lib/session";
 import { BuildTable } from "./OrgHome";
-import { Empty, ErrorNote } from "../components/ui";
+import { ErrorNote } from "../components/ui";
+import SpecVersionsTimeline from "../components/SpecVersionsTimeline";
 
 export default function ProjectPage() {
   const { project = "" } = useParams();
@@ -41,29 +42,14 @@ export default function ProjectPage() {
         </section>
         <section>
           <h2>Versions</h2>
-          <div className="card flush">
-            {(specs.data?.items ?? []).length === 0 ? <Empty>No saved versions yet. Open the builder to create one.</Empty> : (
-              <table>
-                <thead><tr><th>Version</th><th>Digest</th><th>Saved</th><th></th></tr></thead>
-                <tbody>
-                  {specs.data!.items.map((s) => {
-                    const meta = (s.spec as { metadata?: { version?: string } }).metadata;
-                    return (
-                      <tr key={s.id}>
-                        <td>{meta?.version} {s.hasExpert && <span className="badge warn">expert</span>}</td>
-                        <td><code title={s.digest}>{s.digest.slice(7, 19)}</code></td>
-                        <td className="muted">{ago(s.createdAt)}</td>
-                        <td className="row" style={{ gap: 4 }}>
-                          <Link className="btn small" to={`/o/${currentOrg()}/p/${project}/edit?version=${s.id}`}>Open</Link>
-                          <button className="small" onClick={() => void buildVersion(s.id)}>Build</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <SpecVersionsTimeline
+            projectId={project}
+            versions={specs.data?.items ?? []}
+            currentVersionId={specs.data?.items?.[0]?.id}
+            onBuild={buildVersion}
+            onSelect={id => console.log("Version selected:", id)}
+            currentOrgId={currentOrg()}
+          />
         </section>
       </div>
     </div>

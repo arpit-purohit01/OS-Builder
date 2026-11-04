@@ -192,6 +192,10 @@
             },
             "background": {
               "$ref": "#/$defs/color"
+            },
+            "hideMenu": {
+              "type": "boolean",
+              "default": true
             }
           }
         },

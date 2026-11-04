@@ -221,3 +221,75 @@ func (db *DB) EnsureCatalogVersion(ctx context.Context, id string, cnfDigest []b
 		return nil
 	})
 }
+
+// CatalogVersion represents a versioned catalog entry.
+type CatalogVersion struct {
+	ID           string    `json:"id"`
+	CatalogID    string    `json:"catalog_id"` // git tree hash (same as ID for now)
+	CNFDigest    []byte    `json:"cnf_digest"` // sha256 of compiled CNF
+	Base         string    `json:"base"`       // base distro (e.g., ubuntu-24.04)
+	Arch         string    `json:"arch"`       // architecture (e.g., x86_64)
+	PublishedAt  time.Time `json:"published_at"`
+	CreatedAt    time.Time `json:"created_at"` // alias for PublishedAt
+	IsDefault    bool      `json:"is_default"`
+	OptionsCount int       `json:"options_count"` // number of options in catalog
+}
+
+func scanCatalogVersion(r pgx.Row) (*CatalogVersion, error) {
+	v := &CatalogVersion{}
+	err := r.Scan(&v.ID, &v.CNFDigest, &v.PublishedAt, &v.IsDefault)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	v.CatalogID = v.ID // git tree hash
+	v.CreatedAt = v.PublishedAt
+	v.Base = "ubuntu-24.04" // default, not stored in DB
+	v.Arch = "x86_64"       // default, not stored in DB
+	v.OptionsCount = 0      // not stored in DB
+	return v, nil
+}
+
+// ListCatalogVersions returns all catalog versions.
+func (db *DB) ListCatalogVersions(ctx context.Context, orgID string) ([]CatalogVersion, error) {
+	rows, err := db.Pool.Query(ctx, `SELECT id, cnf_digest, published_at, is_default FROM catalog_versions ORDER BY published_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CatalogVersion
+	for rows.Next() {
+		v, err := scanCatalogVersion(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *v)
+	}
+	return out, nil
+}
+
+// GetCatalogVersion returns a specific catalog version by ID.
+func (db *DB) GetCatalogVersion(ctx context.Context, orgID, versionID string) (*CatalogVersion, error) {
+	return scanCatalogVersion(db.Pool.QueryRow(ctx, `SELECT id, cnf_digest, published_at, is_default FROM catalog_versions WHERE id=$1`, versionID))
+}
+
+// CreateCatalogVersion creates a new catalog version.
+func (db *DB) CreateCatalogVersion(ctx context.Context, orgID string, v *CatalogVersion) error {
+	_, err := db.Pool.Exec(ctx, `INSERT INTO catalog_versions (id, cnf_digest) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING`, v.ID, v.CNFDigest)
+	return mapErr(err)
+}
+
+// CreateCatalogVersionWithDetails creates a new catalog version with full details (for API compatibility).
+func (db *DB) CreateCatalogVersionWithDetails(ctx context.Context, orgID string, v *CatalogVersion) error {
+	return db.CreateCatalogVersion(ctx, orgID, v)
+}
+
+// SetDefaultCatalogVersion marks a catalog version as the default.
+func (db *DB) SetDefaultCatalogVersion(ctx context.Context, orgID, versionID string) error {
+	return db.Tx(ctx, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE catalog_versions SET is_default=false WHERE is_default`); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `UPDATE catalog_versions SET is_default=true WHERE id=$1`, versionID)
+		return err
+	})
+}

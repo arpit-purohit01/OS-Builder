@@ -70,6 +70,7 @@ type Layout struct {
 type BootSplash struct {
 	Logo       string `json:"logo,omitempty"`
 	Background string `json:"background,omitempty"`
+	HideMenu   *bool  `json:"hideMenu,omitempty"`
 }
 
 type LoginScreen struct {

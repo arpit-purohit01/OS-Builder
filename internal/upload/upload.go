@@ -5,6 +5,7 @@ package upload
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"compress/gzip"
@@ -14,6 +15,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"os"
 	"path"
 	"strings"
 	"unicode"
@@ -109,19 +111,40 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// ValidateArchive checks a tar (optionally gzip) overlay tree.
+// ValidateArchive checks a tar/zip (optionally gzip) overlay tree.
 func ValidateArchive(r io.Reader, lim Limits) (*Report, error) {
 	rep := &Report{Kind: "overlay"}
 	cr := &countingReader{r: r}
 	br := bufio.NewReader(cr)
+
+	// Peek at the magic bytes to detect archive format
+	magic, _ := br.Peek(4)
+
 	var src io.Reader = br
-	if magic, _ := br.Peek(2); len(magic) == 2 && magic[0] == 0x1f && magic[1] == 0x8b {
+	isZip := len(magic) >= 4 && magic[0] == 0x50 && magic[1] == 0x4b && (magic[2] == 0x03 || magic[2] == 0x05 || magic[2] == 0x07)
+	isGzip := len(magic) >= 2 && magic[0] == 0x1f && magic[1] == 0x8b
+
+	if isGzip {
 		gz, err := gzip.NewReader(br)
 		if err != nil {
 			return nil, err
 		}
 		src = gz
+		// Check if gzip contains a zip - peek before creating gzip reader
+		// Save original reader position by reading magic bytes from original stream
+		// For now, skip zip-in-gzip check as it's not a common case
 	}
+
+	if isZip {
+		// Read all bytes for zip (need random access)
+		data, err := io.ReadAll(src)
+		if err != nil {
+			return nil, err
+		}
+		return validateZip(bytes.NewReader(data), int64(len(data)), lim)
+	}
+
+	// Default to tar
 	tr := tar.NewReader(src)
 	seen := map[string]bool{}
 	var total int64
@@ -234,6 +257,105 @@ func cleanName(n string) (string, string) {
 func escapes(dir, target string) bool {
 	return strings.HasPrefix(path.Clean(path.Join("/", dir, target)), "/..") ||
 		path.Clean(path.Join(dir, target)) == ".." || strings.HasPrefix(path.Clean(path.Join(dir, target)), "../")
+}
+
+// validateZip validates a zip archive overlay tree.
+func validateZip(r io.Reader, size int64, lim Limits) (*Report, error) {
+	rep := &Report{Kind: "overlay"}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		rep.add("", "UPL-ZIP-000", "failed to read archive: "+err.Error())
+		return rep, nil
+	}
+	zr, err := zip.NewReader(bytes.NewReader(data), size)
+	if err != nil {
+		rep.add("", "UPL-ZIP-000", "archive is corrupt: "+err.Error())
+		return rep, nil
+	}
+
+	seen := map[string]bool{}
+	var total int64
+
+	for _, f := range zr.File {
+		rep.Entries++
+		if rep.Entries > lim.MaxEntries {
+			rep.add("", "UPL-TAR-001", fmt.Sprintf("more than %d entries", lim.MaxEntries))
+			break
+		}
+
+		name, reason := cleanName(f.Name)
+		if reason != "" {
+			rep.add(f.Name, "UPL-PATH", reason)
+			continue
+		}
+		if seen[name] {
+			rep.add(name, "UPL-DUP", "duplicate entry")
+			continue
+		}
+		seen[name] = true
+
+		if f.Mode().IsDir() {
+			continue
+		}
+
+		if f.Mode()&os.ModeSymlink != 0 {
+			rep.add(name, "UPL-LINK", "symlinks are not allowed in zip overlays")
+			continue
+		}
+
+		// Check for device files, FIFOs, sockets (not representable in zip)
+		if f.Mode()&os.ModeDevice != 0 || f.Mode()&os.ModeNamedPipe != 0 || f.Mode()&os.ModeSocket != 0 {
+			rep.add(name, "UPL-TYPE", "device nodes, FIFOs and sockets are not allowed")
+			continue
+		}
+
+		if f.Mode().IsRegular() {
+			if f.UncompressedSize64 > uint64(lim.MaxFileBytes) {
+				rep.add(name, "UPL-SIZE", fmt.Sprintf("file larger than %d bytes", lim.MaxFileBytes))
+			}
+			total += int64(f.UncompressedSize64)
+			if total > lim.MaxTotalBytes {
+				rep.add("", "UPL-TOTAL", "archive expands beyond the total size limit")
+				break
+			}
+
+			// Check for ELF or script
+			rc, err := f.Open()
+			if err == nil {
+				var head [4]byte
+				n, _ := io.ReadFull(rc, head[:])
+				if n >= 4 && string(head[:4]) == "\x7fELF" {
+					rep.ELF = append(rep.ELF, name)
+				} else if n >= 2 && head[0] == '#' && head[1] == '!' {
+					rep.Scripts = append(rep.Scripts, name)
+				}
+				rc.Close()
+			}
+
+			if total > lim.MaxTotalBytes {
+				rep.add("", "UPL-TOTAL", "archive expands beyond the total size limit")
+				break
+			}
+
+			// Check compression ratio
+			if f.CompressedSize64 > 0 && float64(f.UncompressedSize64)/float64(f.CompressedSize64) > lim.MaxRatio && f.UncompressedSize64 > 10<<20 {
+				rep.add("", "UPL-RATIO", "compression ratio too high (possible archive bomb)")
+				break
+			}
+		}
+
+		// Check setuid/setgid
+		if f.Mode()&04000 != 0 || f.Mode()&02000 != 0 {
+			rep.Setuid = append(rep.Setuid, name)
+			if !lim.AllowSetuid {
+				rep.add(name, "UPL-SUID", "setuid/setgid files need expert mode and review")
+			}
+		}
+	}
+
+	rep.Bytes = total
+	rep.Valid = len(rep.Findings) == 0
+	return rep, nil
 }
 
 // ErrUnsupported is returned for unknown upload kinds.

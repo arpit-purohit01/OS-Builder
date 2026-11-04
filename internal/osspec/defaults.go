@@ -43,6 +43,10 @@ func Default(s *Spec) {
 		s.Look.BootSplash = &BootSplash{}
 	}
 	def(&s.Look.BootSplash.Background, "#0B1020")
+	if s.Look.BootSplash.HideMenu == nil {
+		v := true
+		s.Look.BootSplash.HideMenu = &v
+	}
 
 	if s.Apps == nil {
 		s.Apps = &Apps{}

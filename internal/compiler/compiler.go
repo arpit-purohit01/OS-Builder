@@ -159,6 +159,7 @@ func Compile(in Input) (*Output, error) {
 	c.kernel()
 	c.memory()
 	c.look()
+	c.systemdBoot()
 	c.apps()
 	c.ecosystem()
 	c.updates()

@@ -66,6 +66,10 @@ const Look = (ctx: Ctx) => (
         {isDesktop(ctx) && <Choice ctx={ctx} label="Icons" pointer="/look/theme/iconTheme" prefix="icons." />}
         <Color ctx={ctx} label="Boot screen background" pointer="/look/bootSplash/background" def="#0B1020" swatches={["#0B1020", "#000000", "#FFFFFF", "#111827"]} />
         <AssetUpload kind="image" accept="image/png,image/svg+xml" mediaType={mediaFor} label="Boot logo (PNG or SVG)" onDone={(d) => ctx.store.set("/look/bootSplash/logo", d, "Boot logo")} />
+        <AssetUpload kind="image" accept="image/png,image/jpeg" mediaType={mediaFor} label="Login screen background (PNG or JPEG)" onDone={(d) => ctx.store.set("/look/loginScreen/background", d, "Login screen background")} />
+        {(get(ctx.spec, "/look/loginScreen/background") as string) && <p className="small muted">Custom login background: <code>{(get(ctx.spec, "/look/loginScreen/background") as string).slice(0, 19)}…</code></p>}
+        <Toggle ctx={ctx} label="Hide systemd-boot menu (silent boot)" pointer="/look/bootSplash/hideMenu" def={true}
+          danger={{ on: false, title: "Show boot menu?", text: "Showing the menu allows selecting fallback entries but leaks the OS name before authentication." }} />
       </div>
     )}
   </>
