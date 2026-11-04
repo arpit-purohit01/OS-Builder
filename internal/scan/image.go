@@ -80,7 +80,7 @@ func ExtractUsr(ctx context.Context, disk string) (string, Manifest, error) {
 	defer os.Remove(img)
 
 	root := filepath.Join(tmpDir, "usr")
-	if err := imgutil.Run(ctx, nil, "fsck.erofs", "--extract="+root, "--preserve", img); err != nil {
+	if err := imgutil.Run(ctx, nil, "fsck.erofs", "--extract="+root, "--preserve-perms", "--no-preserve-owner", img); err != nil {
 		return "", nil, err
 	}
 
