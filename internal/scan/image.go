@@ -47,11 +47,13 @@ type FileEntry struct {
 // Manifest is sorted by path.
 type Manifest []FileEntry
 
-// ExtractUsr unpacks slot A's usr partition of a raw disk into dir.
-func ExtractUsr(ctx context.Context, disk, dir string) (string, error) {
+// ExtractUsr unpacks slot A's usr partition of a raw disk.
+// Extraction is always done on a native Linux filesystem (not 9p/WSL mount)
+// to avoid erofs extraction failures on Windows filesystem.
+func ExtractUsr(ctx context.Context, disk string) (string, Manifest, error) {
 	t, err := gpt.ReadFile(disk)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	var usr *gpt.Partition
 	for i := range t.Partitions {
@@ -61,18 +63,34 @@ func ExtractUsr(ctx context.Context, disk, dir string) (string, error) {
 		}
 	}
 	if usr == nil {
-		return "", fmt.Errorf("scan: no usr partition")
+		return "", nil, fmt.Errorf("scan: no usr partition")
 	}
-	img := filepath.Join(dir, "usr.erofs")
+
+	// Use native Linux temp directory for extraction (avoids 9p/WSL issues)
+	tmpDir, err := os.MkdirTemp("", "foundry-scan-")
+	if err != nil {
+		return "", nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	img := filepath.Join(tmpDir, "usr.erofs")
 	if err := imgutil.ExtractRange(disk, usr.Offset(), usr.Size(), img); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer os.Remove(img)
-	root := filepath.Join(dir, "usr")
+
+	root := filepath.Join(tmpDir, "usr")
 	if err := imgutil.Run(ctx, nil, "fsck.erofs", "--extract="+root, "--preserve", img); err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return root, nil
+
+	// Build manifest from extracted root
+	m, err := BuildManifest(root, "")
+	if err != nil {
+		return "", nil, err
+	}
+
+	return root, m, nil
 }
 
 // BuildManifest walks an extracted /usr tree.

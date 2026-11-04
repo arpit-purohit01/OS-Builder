@@ -52,7 +52,7 @@ func (w *Worker) imageScan(ctx context.Context, b *store.Build, spec *osspec.Spe
 			return nil, err
 		}
 	}
-	// 2. The unsigned disk → /usr extracted in user space.
+	// 2. The unsigned disk → /usr extracted in user space (on native Linux fs).
 	dd, err := w.artifact(ctx, b, "disk-unsigned.raw.zst")
 	if err != nil {
 		return nil, err
@@ -66,16 +66,12 @@ func (w *Worker) imageScan(ctx context.Context, b *store.Build, spec *osspec.Spe
 	if err := imgutil.Unzstd(ctx, src, disk); err != nil {
 		return nil, err
 	}
-	root, err := scan.ExtractUsr(ctx, disk, dir)
+	root, man, err := scan.ExtractUsr(ctx, disk)
 	os.Remove(disk)
 	if err != nil {
 		return nil, fmt.Errorf("scan: extract /usr: %w", err)
 	}
 	defer os.RemoveAll(root)
-	man, err := scan.BuildManifest(root, "/usr")
-	if err != nil {
-		return nil, err
-	}
 	logf(fmt.Sprintf("foundry: image manifest: %d entries", len(man)))
 	// 3. What the platform generated (compiled tree) and what came from overlays.
 	expected := map[string]bool{}
